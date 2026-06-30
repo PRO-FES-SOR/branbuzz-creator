@@ -173,22 +173,82 @@ function subscribeToRealtime() {
     
     // Only refresh the active section if we are on it
     if (activeSection === 'orders') renderAllOrders();
-    else if (activeSection === 'inbox' && activeChatCreatorId) {
-      // Re-render chat seamlessly
-      const msgContainer = document.getElementById('admin-chat-messages');
-      const isAtBottom = msgContainer ? (msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 50) : true;
-      
-      window.selectCreatorChat(activeChatCreatorId);
-      
-      // Preserve scroll position if they scrolled up
-      const newMsgContainer = document.getElementById('admin-chat-messages');
-      if (newMsgContainer && !isAtBottom && msgContainer) {
-        newMsgContainer.scrollTop = msgContainer.scrollTop;
+    else if (activeSection === 'inbox') {
+      if (activeChatCreatorId) {
+        // Re-render chat seamlessly
+        const msgContainer = document.getElementById('admin-chat-messages');
+        const isAtBottom = msgContainer ? (msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 50) : true;
+        
+        const profile = allProfiles.find(p => p.id === activeChatCreatorId);
+        const creatorName = profile ? profile.display_name : 'Creator';
+        window.openChat(activeChatCreatorId, creatorName, false);
+        
+        // Re-render sidebar contacts without losing focus on input
+        renderInboxSidebarOnly();
+        
+        // Preserve scroll position if they scrolled up
+        const newMsgContainer = document.getElementById('admin-chat-messages');
+        if (newMsgContainer && !isAtBottom && msgContainer) {
+          newMsgContainer.scrollTop = msgContainer.scrollTop;
+        }
+      } else {
+        renderInbox();
       }
     } else {
       refreshActiveSection();
     }
   }, 5000);
+}
+
+// Helper to only render the sidebar contacts so we don't destroy the chat input focus
+function renderInboxSidebarOnly() {
+  const contactsContainer = document.getElementById('admin-chat-contacts');
+  if (!contactsContainer) return;
+  
+  const creatorIds = [...new Set(allMessages.filter(m => m.message_type !== 'broadcast').map(m => m.sender_id === currentUser.id ? m.receiver_id : m.sender_id))].filter(Boolean);
+  if (creatorIds.length === 0) return;
+
+  const contacts = creatorIds.map(id => {
+    const profile = allProfiles.find(p => p.id === id);
+    const msgs = allMessages.filter(m => 
+      (m.sender_id === id && (m.receiver_id === currentUser.id || m.message_type === 'to_admin')) || 
+      (m.sender_id === currentUser.id && m.receiver_id === id)
+    );
+    msgs.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    const latest = msgs[0];
+    const unreadCount = msgs.filter(m => m.sender_id === id && m.message_type === 'to_admin' && !m.is_read).length;
+    
+    let statusIcon = '';
+    if (latest && latest.sender_id === currentUser.id) {
+      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? '✓✓' : '✓'}</span>`;
+    } else if (unreadCount > 0) {
+       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">🟢</span>`;
+    }
+
+    return {
+      id, name: profile?.display_name || 'Creator', latestMsg: latest?.content || '', latestTime: latest?.created_at || 0,
+      unreadCount, statusIcon, isUnread: unreadCount > 0
+    };
+  }).sort((a,b) => new Date(b.latestTime) - new Date(a.latestTime));
+
+  contactsContainer.innerHTML = contacts.map(c => {
+    const isStarred = adminStarredChats.includes(c.id);
+    return \`
+      <div class="chat-contact \${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('\${c.id}', '\${escHtml(c.name)}')">
+        <div class="contact-avatar">\${c.name.charAt(0).toUpperCase()}</div>
+        <div class="contact-info">
+          <div class="contact-name" style="\${c.isUnread ? 'font-weight: 700;' : ''}">\${escHtml(c.name)} \${isStarred ? '⭐' : ''}</div>
+          <div class="contact-preview" style="\${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
+            \${c.statusIcon}\${escHtml(c.latestMsg)}
+          </div>
+        </div>
+        <div class="contact-meta">
+          <div class="contact-time" style="\${c.isUnread ? 'color: var(--color-accent-green); font-weight: 600;' : ''}">\${c.latestTime ? new Date(c.latestTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</div>
+          \${c.unreadCount > 0 ? \`<div class="unread-badge" style="background: var(--color-accent-green);">\${c.unreadCount}</div>\` : ''}
+        </div>
+      </div>
+    \`;
+  }).join('');
 }
 
 function refreshSection(section) {
