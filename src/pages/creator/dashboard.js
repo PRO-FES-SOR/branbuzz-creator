@@ -18,6 +18,7 @@ let currentUser = null;
 let products = [];
 let orders = [];
 let messages = [];
+let realtimeChannel = null;
 
 // ========================================
 // INITIALIZATION
@@ -39,6 +40,7 @@ async function init() {
 
     setupNavigation();
     setupOrderTabs();
+    subscribeToRealtime();
   } catch (error) {
     console.error('Auth error:', error);
   }
@@ -109,6 +111,38 @@ function switchToSection(sectionName) {
   if (sectionName === 'inbox') {
     loadMessages();
   }
+}
+
+// ========================================
+// REALTIME SUBSCRIPTION
+// ========================================
+function subscribeToRealtime() {
+  if (realtimeChannel) return; // Prevent duplicate subscriptions
+
+  realtimeChannel = supabase.channel('creator-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'orders', filter: `creator_id=eq.${currentUser.id}` },
+      async () => {
+        // Reload orders when changes happen
+        await loadOrders();
+        
+        // Re-apply current active filter if the order tab is active
+        const activeTab = document.querySelector('#order-tabs .section-tab.active');
+        if (activeTab) {
+          renderOrders(activeTab.dataset.filter);
+        }
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages' }, // Supabase realtime filter on OR/IN is complex, so we filter locally if needed, but since RLS restricts it, we only receive our own messages anyway!
+      async () => {
+        // Reload messages
+        await loadMessages();
+      }
+    )
+    .subscribe();
 }
 
 // ========================================
