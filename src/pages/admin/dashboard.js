@@ -161,28 +161,34 @@ async function loadMessages() {
   }
 }
 
-// D3: Supabase Realtime — auto-refresh on order/profile changes
+// D3: Admin Polling — Avoids Supabase Realtime RLS subquery limitations
 function subscribeToRealtime() {
-  if (realtimeChannel) {
-    supabase.removeChannel(realtimeChannel);
-  }
-  realtimeChannel = supabase
-    .channel('admin-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
-      await loadOrders();
-      updateDashboardStats();
+  // Poll every 5 seconds to get live updates for orders and messages
+  setInterval(async () => {
+    // Only fetch if tab is active to save resources
+    if (document.hidden) return;
+    
+    await Promise.all([loadOrders(), loadMessages()]);
+    updateDashboardStats();
+    
+    // Only refresh the active section if we are on it
+    if (activeSection === 'orders') renderAllOrders();
+    else if (activeSection === 'inbox' && activeChatCreatorId) {
+      // Re-render chat seamlessly
+      const msgContainer = document.getElementById('admin-chat-messages');
+      const isAtBottom = msgContainer ? (msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 50) : true;
+      
+      window.selectCreatorChat(activeChatCreatorId);
+      
+      // Preserve scroll position if they scrolled up
+      const newMsgContainer = document.getElementById('admin-chat-messages');
+      if (newMsgContainer && !isAtBottom && msgContainer) {
+        newMsgContainer.scrollTop = msgContainer.scrollTop;
+      }
+    } else {
       refreshActiveSection();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, async () => {
-      await loadProfiles();
-      if (activeSection === 'creators') refreshActiveSection();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async () => {
-      await loadMessages();
-      updateDashboardStats();
-      if (activeSection === 'inbox') renderInbox();
-    })
-    .subscribe();
+    }
+  }, 5000);
 }
 
 function refreshSection(section) {
@@ -1972,12 +1978,12 @@ window.openChat = function(creatorId, creatorName, markActive = true) {
           const timeString = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
           // Parse Reply Blocks
-          let displayContent = escHtml(msg.content);
+          let displayContent = escHtml(msg.content).replace(/\n/g, '<br />');
           if (displayContent.startsWith('REPLY::[')) {
-            const endIdx = displayContent.indexOf(']::REPLY_END\\n');
+            const endIdx = displayContent.indexOf(']::REPLY_END<br />');
             if (endIdx > -1) {
-              const originalText = displayContent.substring(8, endIdx);
-              const replyText = displayContent.substring(endIdx + 13);
+              const originalText = displayContent.substring(8, endIdx).replace(/<br \/>/g, ' ');
+              const replyText = displayContent.substring(endIdx + 18);
               displayContent = `<div class="quoted-reply">${originalText}</div>${replyText}`;
             }
           }
