@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — BranBuzz</title>
+  <meta name="description" content="Admin dashboard for managing products, verifying screenshots, and processing payments." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <link rel="stylesheet" href="/src/styles/admin.css" />
+  <link rel="stylesheet" href="/src/styles/chat.css" />
+</head>
+<body>
+  <!-- Page Loader -->
+  <div class="page-loader" id="page-loader">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-header">
+        <img src="/BranBuzz.png" alt="BranBuzz Logo" class="logo-img" style="height: 36px; width: 140px; object-fit: cover; object-position: left center;" />
+        <span class="admin-badge">Admin</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <span class="sidebar-section-label">Overview</span>
+        <button class="sidebar-link active" data-section="dashboard" id="nav-dashboard">
+          <span class="link-icon">📊</span> Dashboard
+        </button>
+
+        <span class="sidebar-section-label">Products</span>
+        <button class="sidebar-link" data-section="products" id="nav-products">
+          <span class="link-icon">📦</span> Product Manager
+        </button>
+
+        <span class="sidebar-section-label">Verifications</span>
+        <button class="sidebar-link" data-section="screenshots" id="nav-screenshots">
+          <span class="link-icon">📸</span> Purchase Screenshots
+          <span class="link-badge hidden" id="screenshot-badge">0</span>
+        </button>
+        <button class="sidebar-link" data-section="refunds" id="nav-refunds">
+          <span class="link-icon">💸</span> Pending Refunds
+          <span class="link-badge hidden" id="refund-badge">0</span>
+        </button>
+        <button class="sidebar-link" data-section="reviews" id="nav-reviews">
+          <span class="link-icon">⭐</span> Review Proofs
+          <span class="link-badge hidden" id="review-badge">0</span>
+        </button>
+        <button class="sidebar-link" data-section="reels" id="nav-reels">
+          <span class="link-icon">🎬</span> Reels
+          <span class="link-badge hidden" id="reel-badge">0</span>
+        </button>
+
+        <span class="sidebar-section-label">Management</span>
+        <button class="sidebar-link" data-section="creators" id="nav-creators">
+          <span class="link-icon">👥</span> Creators
+        </button>
+        <button class="sidebar-link" data-section="inbox" id="nav-inbox">
+          <span class="link-icon">✉️</span> Inbox
+          <span class="link-badge hidden" id="admin-inbox-badge">0</span>
+        </button>
+        <button class="sidebar-link" data-section="orders" id="nav-orders">
+          <span class="link-icon">📋</span> All Orders
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar" id="sidebar-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="sidebar-name">Admin</div>
+            <div class="user-role">Administrator</div>
+          </div>
+          <button class="btn-icon" id="admin-logout-btn" title="Logout">🚪</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile sidebar toggle -->
+    <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+
+    <!-- Main Content -->
+    <main class="admin-main" id="admin-main">
+
+      <!-- Dashboard Section -->
+      <section id="section-dashboard">
+        <div class="admin-page-header">
+          <div>
+            <h1>📊 Dashboard</h1>
+            <p>Overview of your creator platform</p>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card stagger-1">
+            <div class="stat-icon violet">📦</div>
+            <div class="stat-value" id="stat-products">0</div>
+            <div class="stat-label">Active Products</div>
+          </div>
+          <div class="stat-card stagger-2">
+            <div class="stat-icon teal">📋</div>
+            <div class="stat-value" id="stat-orders">0</div>
+            <div class="stat-label">Total Orders</div>
+          </div>
+          <div class="stat-card stagger-3">
+            <div class="stat-icon orange">📸</div>
+            <div class="stat-value" id="stat-pending-screenshots">0</div>
+            <div class="stat-label">Pending Screenshots</div>
+          </div>
+          <div class="stat-card stagger-4">
+            <div class="stat-icon pink">⭐</div>
+            <div class="stat-value" id="stat-pending-reviews">0</div>
+            <div class="stat-label">Pending Reviews</div>
+          </div>
+          <div class="stat-card stagger-5">
+            <div class="stat-icon green">💰</div>
+            <div class="stat-value" id="stat-total-payouts">₹0</div>
+            <div class="stat-label">Total Payouts</div>
+          </div>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="admin-panel">
+          <div class="panel-header">
+            <h3>Recent Orders</h3>
+          </div>
+          <div class="panel-body no-padding">
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="recent-orders-table">
+                <thead>
+                  <tr>
+                    <th>Creator</th>
+                    <th>Product</th>
+                    <th>Instagram</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>View</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-orders-body">
+                  <tr><td colspan="6" class="text-center" style="padding: 2rem;">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Products Manager Section -->
+      <section id="section-products" class="hidden">
+        <div class="admin-page-header">
+          <div>
+            <h1>📦 Product Manager</h1>
+            <p>Add, edit, and manage your product listings</p>
+          </div>
+          <button class="btn btn-primary" id="add-product-btn">+ Add Product</button>
+        </div>
+
+        <div class="admin-panel">
+          <div class="panel-body no-padding">
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="products-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Review Pay</th>
+                    <th>Reel Pay</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="products-table-body">
+                  <tr><td colspan="6" class="text-center" style="padding: 2rem;">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screenshot Verification Section -->
+      <section id="section-screenshots" class="hidden">
+        <div class="admin-page-header">
+          <div>
+            <h1>📸 Purchase Screenshots</h1>
+            <p>Verify purchase proof from creators</p>
+          </div>
+        </div>
+        <div id="screenshots-list">
+          <div class="empty-state">
+            <div class="spinner" style="margin: 0 auto var(--space-md);"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pending Refunds Section (F8) -->
+      <section id="section-refunds" class="hidden">
+        <div class="admin-page-header">
+          <div>
+            <h1>💸 Pending Refunds</h1>
+            <p>Process refunds for verified purchase screenshots</p>
+          </div>
+        </div>
+        <div id="refunds-list">
+          <div class="empty-state">
+            <div class="spinner" style="margin: 0 auto var(--space-md);"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Review Proof Verification Section -->
+      <section id="section-reviews" class="hidden">
+        <div class="admin-page-header">
+          <div>
+            <h1>⭐ Review Proofs</h1>
+            <p>Verify Amazon review screenshots from creators</p>
+          </div>
+        </div>
+        <div id="reviews-list">
+          <div class="empty-state">
+            <div class="spinner" style="margin: 0 auto var(--space-md);"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reels Section -->
+      <section id="section-reels" class="hidden">
+        <div class="admin-page-header">
+          <div>
+            <h1>🎬 Reel Submissions</h1>
+            <p>Review submitted reels and process payments</p>
+          </div>
+        </div>
+        <div id="reels-list">
+          <div class="empty-state">
+            <div class="spinner" style="margin: 0 auto var(--space-md);"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- All Orders Section -->
+      <section id="section-orders" class="hidden">
+        <div class="admin-page-header">
+          <div>
+            <h1>📋 All Orders</h1>
+            <p>Complete order management</p>
+          </div>
+        </div>
+
+        <div class="filter-bar" style="margin-bottom: var(--space-xl);">
+          <select class="form-select" id="order-status-filter">
+            <option value="">All Statuses</option>
+            <option value="interested">Interested</option>
+            <option value="screenshot_uploaded">Screenshot Uploaded</option>
+            <option value="screenshot_rejected">Screenshot Rejected</option>
+            <option value="screenshot_verified">Screenshot Verified</option>
+            <option value="refunded">Refunded</option>
+            <option value="review_submitted">Review Submitted</option>
+            <option value="review_verified">Review Verified</option>
+            <option value="review_rejected">Review Rejected</option>
+            <option value="reel_submitted">Reel Submitted</option>
+            <option value="reel_rejected">Reel Rejected</option>
+            <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <input type="text" class="form-input" id="order-search" placeholder="Search by creator name..." />
+        </div>
+
+        <div class="admin-panel">
+          <div class="panel-body no-padding">
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="all-orders-table">
+                <thead>
+                  <tr>
+                    <th>Creator</th>
+                    <th>Product</th>
+                    <th>Contact</th>
+                    <th>Instagram</th>
+                    <th>Amazon Order</th>
+                    <th>UPI ID</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="all-orders-body">
+                  <tr><td colspan="9" class="text-center" style="padding: 2rem;">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div id="load-more-container" class="hidden" style="text-align: center; padding: var(--space-lg);">
+          <button class="btn btn-secondary" id="load-more-btn">Load More Orders</button>
+        </div>
+      </section>
+
+      <!-- Creators Section -->
+      <section id="section-creators" class="hidden">
+        <div class="admin-page-header">
+          <div>
+            <h1>👥 Creators</h1>
+            <p>View all creators and their complete activity history</p>
+          </div>
+        </div>
+
+        <div class="filter-bar" style="margin-bottom: var(--space-xl);">
+          <input type="text" class="form-input" id="creator-search" placeholder="Search by name, email, or Instagram..." />
+        </div>
+
+        <div class="admin-panel">
+          <div class="panel-body no-padding">
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="creators-table">
+                <thead>
+                  <tr>
+                    <th>Creator</th>
+                    <th>Email</th>
+                    <th>Instagram</th>
+                    <th>Contact</th>
+                    <th>Total Orders</th>
+                    <th>Completed</th>
+                    <th>Total Earned</th>
+                    <th>Joined</th>
+                    <th>View</th>
+                  </tr>
+                </thead>
+                <tbody id="creators-table-body">
+                  <tr><td colspan="9" class="text-center" style="padding: 2rem;">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Inbox Section -->
+      <section id="section-inbox" class="hidden">
+        <div class="chat-container">
+          <!-- Sidebar for Contacts -->
+          <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+              <button class="btn btn-primary w-full" id="admin-broadcast-btn">Broadcast Message</button>
+            </div>
+            <div class="chat-contacts" id="admin-chat-contacts">
+              <div class="empty-state" style="padding: 2rem;">
+                <div class="spinner" style="margin: 0 auto var(--space-md);"></div>
+                <p>Loading contacts...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Chat Area -->
+          <div class="chat-main" id="admin-chat-main">
+            <!-- Empty state when no contact is selected -->
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--color-text-muted);">
+              <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+              <p>Select a creator to start chatting</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module" src="/src/pages/admin/dashboard.js"></script>
+</body>
+</html>

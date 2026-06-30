@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Setup — One-Time Setup</title>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <link rel="stylesheet" href="/src/styles/auth.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-bg-orb"></div>
+    <div class="auth-bg-orb"></div>
+    <div class="auth-bg-orb"></div>
+
+    <div class="auth-container">
+      <div class="auth-card admin-card">
+        <div class="auth-logo">
+          <div class="logo-icon">🔧</div>
+          <h1>Admin Setup</h1>
+          <p>Create your first admin account (one-time setup)</p>
+        </div>
+
+        <form class="auth-form" id="setup-form">
+          <div class="form-group">
+            <label class="form-label" for="admin-name">Admin Name</label>
+            <input type="text" id="admin-name" class="form-input" placeholder="Your name" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="admin-email">Admin Email</label>
+            <input type="email" id="admin-email" class="form-input" placeholder="admin@company.com" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="admin-password">Password</label>
+            <input type="password" id="admin-password" class="form-input" placeholder="Min 6 characters" required minlength="6" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg w-full" id="setup-btn">
+            Create Admin Account
+          </button>
+        </form>
+
+        <div id="setup-result" class="hidden" style="margin-top: var(--space-xl); text-align: center;">
+          <div style="font-size: 2.5rem; margin-bottom: var(--space-md);">✅</div>
+          <h3 style="color: var(--color-accent-green); margin-bottom: var(--space-sm);">Admin Account Created!</h3>
+          <p style="color: var(--color-text-secondary); font-size: 0.85rem; margin-bottom: var(--space-lg);" id="result-info"></p>
+          <a href="/admin.html" class="btn btn-primary btn-lg">Go to Admin Login →</a>
+        </div>
+
+        <div class="auth-admin-link">
+          <a href="/">← Back to Creator Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module">
+    import { signUp } from '/src/auth.js';
+    import { supabase } from '/src/supabase.js';
+    import { showSuccess, showError } from '/src/components/toast.js';
+
+    const form = document.getElementById('setup-form');
+    const resultDiv = document.getElementById('setup-result');
+
+    // S1: Check if an admin already exists — block form if so
+    async function checkExistingAdmin() {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'admin')
+          .limit(1);
+
+        if (data && data.length > 0) {
+          // Admin already exists — hide form, show message
+          form.classList.add('hidden');
+          resultDiv.classList.remove('hidden');
+          resultDiv.innerHTML = `
+            <div style="font-size: 2.5rem; margin-bottom: var(--space-md);">🔒</div>
+            <h3 style="color: var(--color-text-primary); margin-bottom: var(--space-sm);">Admin Already Configured</h3>
+            <p style="color: var(--color-text-secondary); font-size: 0.85rem; margin-bottom: var(--space-lg);">
+              An admin account already exists. Setup is disabled for security.
+            </p>
+            <a href="/admin.html" class="btn btn-primary btn-lg">Go to Admin Login →</a>
+          `;
+        }
+      } catch (err) {
+        // If we can't check (e.g. RLS blocks it), allow form but warn
+        console.warn('Could not verify existing admin:', err);
+      }
+    }
+
+    checkExistingAdmin();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('admin-name').value;
+      const email = document.getElementById('admin-email').value;
+      const password = document.getElementById('admin-password').value;
+      const btn = document.getElementById('setup-btn');
+
+      btn.disabled = true;
+      btn.textContent = 'Creating admin account...';
+
+      try {
+        // Double-check no admin exists (race condition guard)
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'admin')
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          showError('An admin account already exists. Setup is disabled.');
+          btn.disabled = false;
+          btn.textContent = 'Create Admin Account';
+          return;
+        }
+
+        await signUp(email, password, name, 'admin');
+        
+        // Show success
+        form.classList.add('hidden');
+        resultDiv.classList.remove('hidden');
+        resultDiv.innerHTML = `
+          <div style="font-size: 2.5rem; margin-bottom: var(--space-md);">✅</div>
+          <h3 style="color: var(--color-accent-green); margin-bottom: var(--space-sm);">Admin Account Created!</h3>
+          <p style="color: var(--color-text-secondary); font-size: 0.85rem; margin-bottom: var(--space-lg);">
+            Email: ${email} — Use this to login at the Admin Portal.
+          </p>
+          <a href="/admin.html" class="btn btn-primary btn-lg">Go to Admin Login →</a>
+        `;
+        
+        showSuccess('Admin account created successfully!');
+      } catch (error) {
+        showError(error.message || 'Something went wrong');
+        btn.disabled = false;
+        btn.textContent = 'Create Admin Account';
+      }
+    });
+  </script>
+</body>
+</html>
+

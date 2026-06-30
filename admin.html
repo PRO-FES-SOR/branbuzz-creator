@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — BranBuzz</title>
+  <meta name="description" content="Admin portal login for managing BranBuzz." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <link rel="stylesheet" href="/src/styles/auth.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-bg-orb"></div>
+    <div class="auth-bg-orb"></div>
+    <div class="auth-bg-orb"></div>
+
+    <div class="auth-container">
+      <div class="auth-card admin-card">
+        <div class="auth-logo">
+          <img src="/BranBuzz.png" alt="BranBuzz Logo" class="logo-img" style="height: 64px; width: 200px; object-fit: cover; object-position: left center; margin: 0 auto 12px auto; display: block;" />
+          <p>Manage BranBuzz</p>
+        </div>
+
+        <form class="auth-form" id="admin-signin-form">
+          <div class="form-group">
+            <label class="form-label" for="admin-email">Admin Email</label>
+            <input type="email" id="admin-email" class="form-input" placeholder="admin@company.com" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="admin-password">Password</label>
+            <input type="password" id="admin-password" class="form-input" placeholder="••••••••" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg w-full" id="admin-signin-btn">
+            Sign In as Admin
+          </button>
+        </form>
+
+        <div class="auth-admin-link">
+          <a href="/">← Creator Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script type="module" src="/src/pages/admin/auth.js"></script>
+</body>
+</html>
