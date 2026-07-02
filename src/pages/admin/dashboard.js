@@ -233,21 +233,21 @@ function renderInboxSidebarOnly() {
 
   contactsContainer.innerHTML = contacts.map(c => {
     const isStarred = adminStarredChats.includes(c.id);
-    return \`
-      <div class="chat-contact \${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('\${c.id}', '\${escHtml(c.name)}')">
-        <div class="contact-avatar">\${c.name.charAt(0).toUpperCase()}</div>
+    return `
+      <div class="chat-contact ${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('${c.id}', '${escHtml(c.name)}')">
+        <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
         <div class="contact-info">
-          <div class="contact-name" style="\${c.isUnread ? 'font-weight: 700;' : ''}">\${escHtml(c.name)} \${isStarred ? '⭐' : ''}</div>
-          <div class="contact-preview" style="\${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
-            \${c.statusIcon}\${escHtml(c.latestMsg)}
+          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐' : ''}</div>
+          <div class="contact-preview" style="${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
+            ${c.statusIcon}${escHtml(c.latestMsg)}
           </div>
         </div>
         <div class="contact-meta">
-          <div class="contact-time" style="\${c.isUnread ? 'color: var(--color-accent-green); font-weight: 600;' : ''}">\${c.latestTime ? new Date(c.latestTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</div>
-          \${c.unreadCount > 0 ? \`<div class="unread-badge" style="background: var(--color-accent-green);">\${c.unreadCount}</div>\` : ''}
+          <div class="contact-time" style="${c.isUnread ? 'color: var(--color-accent-green); font-weight: 600;' : ''}">${c.latestTime ? new Date(c.latestTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</div>
+          ${c.unreadCount > 0 ? `<div class="unread-badge" style="background: var(--color-accent-green);">${c.unreadCount}</div>` : ''}
         </div>
       </div>
-    \`;
+    `;
   }).join('');
 }
 
