@@ -132,7 +132,15 @@
           <div class="chat-messages" id="creator-chat-messages">
             <!-- Messages dynamically loaded here -->
           </div>
+          <div class="chat-attachment-preview-container" id="creator-chat-attachment-preview-container">
+            <div class="chat-attachment-preview-content" id="creator-chat-attachment-preview-content"></div>
+            <button class="btn-cancel-reply" onclick="window.removeChatAttachment()">×</button>
+          </div>
           <div class="chat-input-area">
+            <button class="chat-attachment-btn" title="Attach file" onclick="document.getElementById('creator-chat-file-input').click()">
+              <img src="/attach-file.png" style="width: 20px; height: 20px; object-fit: contain; opacity: 0.6;" alt="Attach file" />
+            </button>
+            <input type="file" id="creator-chat-file-input" style="display: none;" onchange="window.handleChatAttachmentSelect(event)" />
             <input type="text" class="chat-input" id="creator-chat-input" placeholder="Type a message..." autocomplete="off" />
             <button class="btn-send" id="creator-chat-send" title="Send">
               <img src="/send.png" style="width: 20px; height: 20px; object-fit: contain; margin-left: -2px; margin-top: 2px;" alt="Send" />

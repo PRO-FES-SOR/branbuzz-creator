@@ -3,6 +3,7 @@ import { requireAuth, signOut } from '../../auth.js';
 import { supabase } from '../../supabase.js';
 import { showSuccess, showError, showInfo } from '../../components/toast.js';
 import { openModal, closeModal, showImagePreview, confirmModal } from '../../components/modal.js';
+import { uploadFile } from '../../components/fileUpload.js';
 import { getStatusBadge } from '../../components/statusBadge.js';
 import { escHtml, escUrl } from '../../utils.js';
 
@@ -12,6 +13,7 @@ let allOrders = [];
 let allProfiles = [];
 let allMessages = [];
 let activeChatCreatorId = null;
+let currentChatAttachment = null;
 let adminStarredChats = JSON.parse(localStorage.getItem('adminStarredChats') || '[]');
 let activeSection = 'dashboard';
 let currentReplyContent = null;
@@ -2023,6 +2025,14 @@ window.openChat = function(creatorId, creatorName, markActive = true) {
               <div class="${classes}" onmouseleave="this.querySelector('.msg-dropdown')?.classList.remove('show')">
                 ${isBroadcast ? '<strong style="display:block; margin-bottom:4px; font-size:0.75rem;">Broadcast</strong>' : ''}
                 ${displayContent}
+                ${msg.attachment_url ? `
+                  <div class="msg-attachment">
+                    ${msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) 
+                      ? `<img src="${escUrl(msg.attachment_url)}" alt="Attachment" onclick="window.showImagePreview('${escUrl(msg.attachment_url)}')"/>`
+                      : `<a href="${escUrl(msg.attachment_url)}" target="_blank" rel="noopener noreferrer">📎 View Attachment</a>`
+                    }
+                  </div>
+                ` : ''}
                 <div class="bubble-meta">
                   <span class="bubble-time">${timeString}</span>
                   ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
@@ -2043,8 +2053,16 @@ window.openChat = function(creatorId, creatorName, markActive = true) {
       <div class="reply-preview-content" id="reply-preview-content"></div>
       <button class="btn-cancel-reply" onclick="window.cancelReply()">×</button>
     </div>
+    <div class="chat-attachment-preview-container" id="admin-chat-attachment-preview-container">
+      <div class="chat-attachment-preview-content" id="admin-chat-attachment-preview-content"></div>
+      <button class="btn-cancel-reply" onclick="window.removeChatAttachment()">×</button>
+    </div>
     <div class="chat-input-area">
-      <input type="text" class="chat-input" id="admin-chat-input" placeholder="Type a reply..." autocomplete="off" />
+      <button class="chat-attachment-btn" title="Attach file" onclick="document.getElementById('admin-chat-file-input').click()">
+        <img src="/attach-file.png" style="width: 20px; height: 20px; object-fit: contain; opacity: 0.6;" alt="Attach file" />
+      </button>
+      <input type="file" id="admin-chat-file-input" style="display: none;" onchange="window.handleChatAttachmentSelect(event)" />
+      <input type="text" class="chat-input" id="admin-chat-input" placeholder="Type a message..." autocomplete="off" />
       <button class="btn-send" id="admin-chat-send" title="Send">
         <img src="/send.png" style="width: 20px; height: 20px; object-fit: contain; margin-left: -2px; margin-top: 2px;" alt="Send" />
       </button>
@@ -2069,7 +2087,8 @@ window.openChat = function(creatorId, creatorName, markActive = true) {
 async function sendDirectMessage(creatorId) {
   const input = document.getElementById('admin-chat-input');
   let text = input.value.trim();
-  if (!text) return;
+  
+  if (!text && !currentChatAttachment) return;
 
   const btn = document.getElementById('admin-chat-send');
   btn.disabled = true;
@@ -2089,15 +2108,24 @@ async function sendDirectMessage(creatorId) {
   }
 
   try {
+    let attachmentUrl = null;
+    if (currentChatAttachment) {
+      const ext = currentChatAttachment.name.split('.').pop();
+      const filename = `admin_${currentUser.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+      attachmentUrl = await uploadFile(currentChatAttachment, `chat-attachments/${filename}`);
+    }
+
     const { error } = await supabase.from('messages').insert({
       sender_id: currentUser.id,
       receiver_id: creatorId,
       message_type: 'direct',
-      content: text
+      content: text,
+      attachment_url: attachmentUrl
     });
     if (error) throw error;
     
     input.value = '';
+    window.removeChatAttachment();
     await loadMessages(); // This will auto refresh because of activeChatCreatorId and loadAllData flow
     if (activeSection === 'inbox') renderInbox();
   } catch (error) {
@@ -2107,6 +2135,44 @@ async function sendDirectMessage(creatorId) {
     if(input) input.focus();
   }
 }
+
+window.handleChatAttachmentSelect = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 10 * 1024 * 1024) {
+    showError('File too large. Max size is 10MB.');
+    return;
+  }
+
+  currentChatAttachment = file;
+  const previewContainer = document.getElementById('admin-chat-attachment-preview-container');
+  const previewContent = document.getElementById('admin-chat-attachment-preview-content');
+  
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewContent.innerHTML = `<img src="${e.target.result}" /> <span>${escHtml(file.name)}</span>`;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    previewContent.innerHTML = `<img src="/attach-file.png" style="width: 16px; height: 16px; object-fit: contain; opacity: 0.6; margin-right: 4px;" alt="File" /> <span>${escHtml(file.name)}</span>`;
+  }
+  
+  previewContainer.classList.add('active');
+  document.getElementById('admin-chat-input').focus();
+};
+
+window.removeChatAttachment = function() {
+  currentChatAttachment = null;
+  const input = document.getElementById('admin-chat-file-input');
+  if (input) input.value = '';
+  const previewContainer = document.getElementById('admin-chat-attachment-preview-container');
+  if (previewContainer) {
+    previewContainer.classList.remove('active');
+    document.getElementById('admin-chat-attachment-preview-content').innerHTML = '';
+  }
+};
 
 async function markAsReadAdmin(ids) {
   try {

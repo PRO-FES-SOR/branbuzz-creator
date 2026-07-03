@@ -19,6 +19,7 @@ let products = [];
 let orders = [];
 let messages = [];
 let realtimeChannel = null;
+let currentChatAttachment = null;
 
 // ========================================
 // INITIALIZATION
@@ -910,6 +911,14 @@ function renderMessages() {
       <div class="${classes}">
         ${isBroadcast ? '<strong style="display:block; margin-bottom:4px; font-size:0.75rem;">Broadcast</strong>' : ''}
         ${contentHtml}
+        ${msg.attachment_url ? `
+          <div class="msg-attachment">
+            ${msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) 
+              ? `<img src="${escUrl(msg.attachment_url)}" alt="Attachment" onclick="window.showImagePreview('${escUrl(msg.attachment_url)}')"/>`
+              : `<a href="${escUrl(msg.attachment_url)}" target="_blank" rel="noopener noreferrer">📎 View Attachment</a>`
+            }
+          </div>
+        ` : ''}
         <div class="bubble-meta">
           <span class="bubble-time">${timeString}</span>
           ${isFromMe ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
@@ -945,20 +954,31 @@ async function markAsRead(ids) {
 async function sendChatMessage() {
   const input = document.getElementById('creator-chat-input');
   const text = input.value.trim();
-  if (!text) return;
+  
+  if (!text && !currentChatAttachment) return;
 
   const btn = document.getElementById('creator-chat-send');
   btn.disabled = true;
 
   try {
+    let attachmentUrl = null;
+    if (currentChatAttachment) {
+      const ext = currentChatAttachment.name.split('.').pop();
+      const filename = `creator_${currentUser.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+      attachmentUrl = await uploadFile(currentChatAttachment, `chat-attachments/${filename}`);
+    }
+
     const { error } = await supabase.from('messages').insert({
       sender_id: currentUser.id,
       message_type: 'to_admin',
-      content: text
+      content: text,
+      attachment_url: attachmentUrl
     });
 
     if (error) throw error;
+    
     input.value = '';
+    window.removeChatAttachment();
     await loadMessages();
   } catch (error) {
     showError('Failed to send message.');
@@ -967,6 +987,44 @@ async function sendChatMessage() {
     input.focus();
   }
 }
+
+window.handleChatAttachmentSelect = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 10 * 1024 * 1024) {
+    showError('File too large. Max size is 10MB.');
+    return;
+  }
+
+  currentChatAttachment = file;
+  const previewContainer = document.getElementById('creator-chat-attachment-preview-container');
+  const previewContent = document.getElementById('creator-chat-attachment-preview-content');
+  
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewContent.innerHTML = `<img src="${e.target.result}" /> <span>${escHtml(file.name)}</span>`;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    previewContent.innerHTML = `<img src="/attach-file.png" style="width: 16px; height: 16px; object-fit: contain; opacity: 0.6; margin-right: 4px;" alt="File" /> <span>${escHtml(file.name)}</span>`;
+  }
+  
+  previewContainer.classList.add('active');
+  document.getElementById('creator-chat-input').focus();
+};
+
+window.removeChatAttachment = function() {
+  currentChatAttachment = null;
+  const input = document.getElementById('creator-chat-file-input');
+  if (input) input.value = '';
+  const previewContainer = document.getElementById('creator-chat-attachment-preview-container');
+  if (previewContainer) {
+    previewContainer.classList.remove('active');
+    document.getElementById('creator-chat-attachment-preview-content').innerHTML = '';
+  }
+};
 
 // Init
 init();
