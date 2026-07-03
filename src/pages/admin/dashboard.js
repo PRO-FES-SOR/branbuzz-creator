@@ -106,7 +106,8 @@ async function loadOrders() {
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false })
-      .range(0, PAGE_SIZE - 1);
+      .order('id', { ascending: true })
+      .range(0, Math.max(PAGE_SIZE - 1, allOrders.length - 1));
     if (error) throw error;
     allOrders = data || [];
     ordersFullyLoaded = (data || []).length < PAGE_SIZE;
@@ -123,6 +124,7 @@ async function loadMoreOrders() {
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
     const newRows = data || [];
@@ -153,7 +155,8 @@ async function loadMessages() {
     const { data, error } = await supabase
       .from('messages')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true });
     if (error) throw error;
     allMessages = data || [];
   } catch (error) {
@@ -161,43 +164,10 @@ async function loadMessages() {
   }
 }
 
-// D3: Admin Polling — Avoids Supabase Realtime RLS subquery limitations
+// D3: Polling disabled — no background refresh.
+// Data updates only when the admin navigates between sections or takes an action.
 function subscribeToRealtime() {
-  // Poll every 5 seconds to get live updates for orders and messages
-  setInterval(async () => {
-    // Only fetch if tab is active to save resources
-    if (document.hidden) return;
-    
-    await Promise.all([loadOrders(), loadMessages()]);
-    updateDashboardStats();
-    
-    // Only refresh the active section if we are on it
-    if (activeSection === 'orders') renderAllOrders();
-    else if (activeSection === 'inbox') {
-      if (activeChatCreatorId) {
-        // Re-render chat seamlessly
-        const msgContainer = document.getElementById('admin-chat-messages');
-        const isAtBottom = msgContainer ? (msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 50) : true;
-        
-        const profile = allProfiles.find(p => p.id === activeChatCreatorId);
-        const creatorName = profile ? profile.display_name : 'Creator';
-        window.openChat(activeChatCreatorId, creatorName, false);
-        
-        // Re-render sidebar contacts without losing focus on input
-        renderInboxSidebarOnly();
-        
-        // Preserve scroll position if they scrolled up
-        const newMsgContainer = document.getElementById('admin-chat-messages');
-        if (newMsgContainer && !isAtBottom && msgContainer) {
-          newMsgContainer.scrollTop = msgContainer.scrollTop;
-        }
-      } else {
-        renderInbox();
-      }
-    } else {
-      refreshActiveSection();
-    }
-  }, 5000);
+  // No-op: polling removed to prevent page refresh issues
 }
 
 // Helper to only render the sidebar contacts so we don't destroy the chat input focus
