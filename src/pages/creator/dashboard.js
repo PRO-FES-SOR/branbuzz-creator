@@ -139,13 +139,115 @@ function subscribeToRealtime() {
     )
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'messages' }, // Supabase realtime filter on OR/IN is complex, so we filter locally if needed, but since RLS restricts it, we only receive our own messages anyway!
-      async () => {
-        // Reload messages
-        await loadMessages();
+      { event: 'INSERT', schema: 'public', table: 'messages' },
+      (payload) => {
+        const newMsg = payload.new;
+        // Skip if we already have this message (e.g. we sent it ourselves)
+        if (messages.find(m => m.id === newMsg.id)) return;
+
+        // Add to our data array (messages is stored newest-first)
+        messages.unshift(newMsg);
+
+        // Update unread badge
+        const unreadCount = messages.filter(m => m.receiver_id === currentUser.id && !m.is_read).length;
+        const badge = document.getElementById('inbox-count');
+        if (badge) {
+          badge.textContent = unreadCount;
+          badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
+        }
+
+        // Append the new message bubble to the chat if inbox is visible
+        appendMessageBubbleCreator(newMsg);
+
+        // Mark as read if inbox section is active
+        if (document.getElementById('section-inbox') && !document.getElementById('section-inbox').classList.contains('hidden')) {
+          if (newMsg.receiver_id === currentUser.id && !newMsg.is_read) {
+            markAsRead([newMsg.id]);
+          }
+        }
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'messages' },
+      (payload) => {
+        const updated = payload.new;
+        const idx = messages.findIndex(m => m.id === updated.id);
+        if (idx > -1) {
+          messages[idx] = updated;
+        }
       }
     )
     .subscribe();
+}
+
+// Append a single message bubble to the creator chat without re-rendering
+function appendMessageBubbleCreator(msg) {
+  const list = document.getElementById('creator-chat-messages');
+  if (!list) return;
+
+  // Remove empty state placeholder if present
+  const placeholder = list.querySelector('div[style*="flex:1"]');
+  if (placeholder && list.children.length === 1) {
+    list.innerHTML = '';
+  }
+
+  const isBroadcast = msg.message_type === 'broadcast';
+  const isFromMe = msg.sender_id === currentUser.id;
+  let classes = 'chat-bubble';
+  if (isBroadcast) classes += ' broadcast';
+  else if (isFromMe) classes += ' sent';
+  else classes += ' received';
+
+  const timeString = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+  let contentHtml = escHtml(msg.content);
+
+  // Parse replies
+  if (msg.content.includes('REPLY::[')) {
+    const match = msg.content.match(/REPLY::\[(.*?)\]::REPLY_END(.*)/s);
+    if (match) {
+      const repliedText = escHtml(match[1]);
+      const actualText = escHtml(match[2].trim());
+      contentHtml = `<div class="quoted-reply">${repliedText}</div>${actualText}`;
+    }
+  }
+
+  // Parse edited label
+  if (contentHtml.endsWith('(edited)')) {
+    contentHtml = contentHtml.replace(/\(edited\)$/, '<span class="chat-edited-label">(edited)</span>');
+  }
+
+  const attachmentHtml = msg.attachment_url ? `
+    <div class="msg-attachment" style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 8px; margin-top: 8px;">
+      ${msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) 
+        ? `<img src="${escUrl(msg.attachment_url)}" alt="Attachment" onclick="window.showImagePreview('${escUrl(msg.attachment_url)}')"/>`
+        : `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--color-text-secondary);">
+             <img src="/attach-file.png" style="width: 24px; height: 24px; opacity: 0.6;" alt="File" />
+             <span style="font-size: 0.85rem; font-weight: bold;">Attachment</span>
+           </div>`
+      }
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <a href="${escUrl(msg.attachment_url)}" target="_blank" rel="noopener noreferrer" style="background: rgba(0,0,0,0.1); padding: 4px 12px; border-radius: 12px; text-decoration: none; font-size: 0.75rem; color: inherit; flex: 1; text-align: center;">Open</a>
+        <a href="${escUrl(msg.attachment_url)}?download=" target="_blank" rel="noopener noreferrer" style="background: var(--color-accent-blue, #007bff); padding: 4px 12px; border-radius: 12px; text-decoration: none; font-size: 0.75rem; color: white; flex: 1; text-align: center;" download>Download</a>
+      </div>
+    </div>
+  ` : '';
+
+  const bubbleHTML = `
+    <div class="${classes}">
+      ${isBroadcast ? '<strong style="display:block; margin-bottom:4px; font-size:0.75rem;">Broadcast</strong>' : ''}
+      ${contentHtml}
+      ${attachmentHtml}
+      <div class="bubble-meta">
+        <span class="bubble-time">${timeString}</span>
+        ${isFromMe ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
+      </div>
+    </div>
+  `;
+
+  list.insertAdjacentHTML('beforeend', bubbleHTML);
+  list.scrollTop = list.scrollHeight;
 }
 
 // ========================================

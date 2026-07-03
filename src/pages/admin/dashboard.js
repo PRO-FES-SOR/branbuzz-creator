@@ -168,10 +168,132 @@ async function loadMessages() {
   }
 }
 
-// D3: Polling disabled — no background refresh.
-// Data updates only when the admin navigates between sections or takes an action.
+// D3: Smart realtime — append new messages without refreshing the page
+let adminRealtimeChannel = null;
+
 function subscribeToRealtime() {
-  // No-op: polling removed to prevent page refresh issues
+  if (adminRealtimeChannel) return;
+
+  adminRealtimeChannel = supabase.channel('admin-messages-realtime')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages' },
+      (payload) => {
+        const newMsg = payload.new;
+        // Skip if we already have this message (e.g. we sent it ourselves)
+        if (allMessages.find(m => m.id === newMsg.id)) return;
+
+        // Add to our data array
+        allMessages.unshift(newMsg);
+
+        // Update badge counts
+        updateDashboardStats();
+
+        // If inbox is open, update the sidebar contacts
+        if (activeSection === 'inbox') {
+          renderInboxSidebarOnly();
+        }
+
+        // If we have an active chat open, check if this message belongs to it
+        if (activeChatCreatorId) {
+          const belongsToActiveChat = (
+            (newMsg.sender_id === activeChatCreatorId && (newMsg.receiver_id === currentUser.id || newMsg.message_type === 'to_admin')) ||
+            (newMsg.sender_id === currentUser.id && newMsg.receiver_id === activeChatCreatorId) ||
+            newMsg.message_type === 'broadcast'
+          );
+
+          if (belongsToActiveChat) {
+            appendMessageBubbleAdmin(newMsg);
+            // Mark as read if it's from the creator
+            if (newMsg.sender_id === activeChatCreatorId && newMsg.message_type === 'to_admin' && !newMsg.is_read) {
+              markAsReadAdmin([newMsg.id]);
+            }
+          }
+        }
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'messages' },
+      (payload) => {
+        const updated = payload.new;
+        const idx = allMessages.findIndex(m => m.id === updated.id);
+        if (idx > -1) {
+          allMessages[idx] = updated;
+        }
+      }
+    )
+    .subscribe();
+}
+
+// Append a single message bubble to the active admin chat without re-rendering
+function appendMessageBubbleAdmin(msg) {
+  const msgContainer = document.getElementById('admin-chat-messages');
+  if (!msgContainer) return;
+
+  // Remove "No messages yet" placeholder if present
+  const placeholder = msgContainer.querySelector('div[style*="flex:1"]');
+  if (placeholder && msgContainer.children.length === 1) {
+    msgContainer.innerHTML = '';
+  }
+
+  const isBroadcast = msg.message_type === 'broadcast';
+  const isFromAdmin = msg.sender_id === currentUser.id || isBroadcast;
+  let classes = 'chat-bubble';
+  if (isBroadcast) classes += ' broadcast';
+  else if (isFromAdmin) classes += ' sent';
+  else classes += ' received';
+
+  const timeString = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+  let displayContent = escHtml(msg.content).replace(/\n/g, '<br />');
+  if (displayContent.startsWith('REPLY::[')) {
+    const endIdx = displayContent.indexOf(']::REPLY_END<br />');
+    if (endIdx > -1) {
+      const originalText = displayContent.substring(8, endIdx).replace(/<br \/>/g, ' ');
+      const replyText = displayContent.substring(endIdx + 18);
+      displayContent = `<div class="quoted-reply">${originalText}</div>${replyText}`;
+    }
+  }
+
+  const attachmentHtml = msg.attachment_url ? `
+    <div class="msg-attachment" style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 8px; margin-top: 8px;">
+      ${msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) 
+        ? `<img src="${escUrl(msg.attachment_url)}" alt="Attachment" onclick="window.showImagePreview('${escUrl(msg.attachment_url)}')"/>`
+        : `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--color-text-secondary);">
+             <img src="/attach-file.png" style="width: 24px; height: 24px; opacity: 0.6;" alt="File" />
+             <span style="font-size: 0.85rem; font-weight: bold;">Attachment</span>
+           </div>`
+      }
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <a href="${escUrl(msg.attachment_url)}" target="_blank" rel="noopener noreferrer" style="background: rgba(0,0,0,0.1); padding: 4px 12px; border-radius: 12px; text-decoration: none; font-size: 0.75rem; color: inherit; flex: 1; text-align: center;">Open</a>
+        <a href="${escUrl(msg.attachment_url)}?download=" target="_blank" rel="noopener noreferrer" style="background: var(--color-accent-blue, #007bff); padding: 4px 12px; border-radius: 12px; text-decoration: none; font-size: 0.75rem; color: white; flex: 1; text-align: center;" download>Download</a>
+      </div>
+    </div>
+  ` : '';
+
+  const bubbleHTML = `
+    <div class="chat-bubble-wrapper ${isFromAdmin ? 'sent' : 'received'}">
+      <div class="${classes}" onmouseleave="this.querySelector('.msg-dropdown')?.classList.remove('show')">
+        ${isBroadcast ? '<strong style="display:block; margin-bottom:4px; font-size:0.75rem;">Broadcast</strong>' : ''}
+        ${displayContent}
+        ${attachmentHtml}
+        <div class="bubble-meta">
+          <span class="bubble-time">${timeString}</span>
+          ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
+        </div>
+      </div>
+      <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">⋮</button>
+      <div class="msg-dropdown">
+        <button onclick="window.prepareReply('${escHtml(msg.content).replace(/'/g, "\\'")}')">\Reply</button>
+        ${isFromAdmin ? `<button onclick="window.editMessage('${msg.id}', '${escHtml(msg.content).replace(/'/g, "\\'")}')">Edit</button>` : ''}
+        <button class="danger" onclick="window.unsendMessage('${msg.id}')">Unsend</button>
+      </div>
+    </div>
+  `;
+
+  msgContainer.insertAdjacentHTML('beforeend', bubbleHTML);
+  msgContainer.scrollTop = msgContainer.scrollHeight;
 }
 
 // Helper to only render the sidebar contacts so we don't destroy the chat input focus
