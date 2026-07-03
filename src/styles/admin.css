@@ -424,27 +424,6 @@
   font-size: 0.825rem;
 }
 
-/* ---- Image Preview Modal ---- */
-.image-preview-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 6000;
-  cursor: zoom-out;
-  animation: fadeIn 0.2s ease;
-}
-
-.image-preview-modal img {
-  max-width: 90vw;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: var(--radius-md);
-  animation: scaleIn 0.3s ease;
-}
-
 /* ---- Responsive ---- */
 @media (max-width: 1024px) {
   .admin-sidebar {

@@ -793,5 +793,25 @@ a:focus-visible,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
+}
+
+/* ---- Image Preview Modal ---- */
+.image-preview-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6000;
+  cursor: zoom-out;
+  animation: fadeIn 0.2s ease;
+}
+
+.image-preview-modal img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  animation: scaleIn 0.3s ease;
 }
