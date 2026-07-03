@@ -7,6 +7,8 @@ import { getStatusBadge, getStatusTimeline } from '../../components/statusBadge.
 import { createUploadArea, uploadFile } from '../../components/fileUpload.js';
 import { escHtml, escUrl } from '../../utils.js';
 
+window.showImagePreview = showImagePreview;
+
 // C3: Single source of truth for sections
 const SECTIONS = {
   products: 'section-products',
@@ -912,11 +914,18 @@ function renderMessages() {
         ${isBroadcast ? '<strong style="display:block; margin-bottom:4px; font-size:0.75rem;">Broadcast</strong>' : ''}
         ${contentHtml}
         ${msg.attachment_url ? `
-          <div class="msg-attachment">
+          <div class="msg-attachment" style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 8px; margin-top: 8px;">
             ${msg.attachment_url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) 
               ? `<img src="${escUrl(msg.attachment_url)}" alt="Attachment" onclick="window.showImagePreview('${escUrl(msg.attachment_url)}')"/>`
-              : `<a href="${escUrl(msg.attachment_url)}" target="_blank" rel="noopener noreferrer">📎 View Attachment</a>`
+              : `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--color-text-secondary);">
+                   <img src="/attach-file.png" style="width: 24px; height: 24px; opacity: 0.6;" alt="File" />
+                   <span style="font-size: 0.85rem; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Attachment</span>
+                 </div>`
             }
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <a href="${escUrl(msg.attachment_url)}" target="_blank" rel="noopener noreferrer" style="background: rgba(0,0,0,0.1); padding: 4px 12px; border-radius: 12px; text-decoration: none; font-size: 0.75rem; color: inherit; flex: 1; text-align: center;">Open</a>
+              <a href="${escUrl(msg.attachment_url)}?download=" target="_blank" rel="noopener noreferrer" style="background: var(--color-accent-blue, #007bff); padding: 4px 12px; border-radius: 12px; text-decoration: none; font-size: 0.75rem; color: white; flex: 1; text-align: center;" download>Download</a>
+            </div>
           </div>
         ` : ''}
         <div class="bubble-meta">
