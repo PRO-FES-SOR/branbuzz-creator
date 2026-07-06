@@ -6,6 +6,7 @@ import { openModal, closeModal, showImagePreview, confirmModal } from '../../com
 import { uploadFile } from '../../components/fileUpload.js';
 import { getStatusBadge } from '../../components/statusBadge.js';
 import { escHtml, escUrl } from '../../utils.js';
+import * as XLSX from 'xlsx';
 
 window.showImagePreview = showImagePreview;
 
@@ -83,6 +84,7 @@ function setupNavigation() {
   document.getElementById('order-status-filter').addEventListener('change', renderAllOrders);
   document.getElementById('order-search').addEventListener('input', renderAllOrders);
   document.getElementById('creator-search').addEventListener('input', renderCreators);
+  document.getElementById('download-creators-excel').addEventListener('click', exportCreatorsToExcel);
   document.getElementById('load-more-btn').addEventListener('click', loadMoreOrders);
 }
 
@@ -1439,8 +1441,9 @@ function renderAllOrders() {
       <td>${new Date(order.created_at).toLocaleDateString()}</td>
       <td>
         <div style="display:flex; gap: var(--space-xs); flex-wrap: wrap; align-items: center;">
-          <button class="btn-eye" data-order-id="${order.id}" aria-label="View order details" title="View Details">\uD83D\uDC41</button>
+          <button class="btn-eye" data-order-id="${order.id}" aria-label="View order details" title="View Details">👁</button>
           ${getOrderActionButtons(order)}
+          <button class="btn-delete-order" data-delete-order-id="${order.id}" data-delete-order-name="${escHtml(order.creator_name)}" aria-label="Delete order" title="Delete Order" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">🗑️</button>
         </div>
       </td>
     </tr>
@@ -1469,6 +1472,9 @@ function renderAllOrders() {
   });
   body.querySelectorAll('[data-action="approve-reel"]').forEach(btn => {
     btn.addEventListener('click', () => window.approveReel(btn.dataset.id));
+  });
+  body.querySelectorAll('.btn-delete-order').forEach(btn => {
+    btn.addEventListener('click', () => window.deleteOrder(btn.dataset.deleteOrderId, btn.dataset.deleteOrderName));
   });
 
   // D5: Show/hide Load More button
@@ -1757,6 +1763,7 @@ function renderCreators() {
       <td style="display: flex; gap: var(--space-xs); align-items: center;">
         <button class="btn-eye" data-creator-id="${creator.id}" aria-label="View creator details" title="View Full History">👁️</button>
         <button class="btn-message" data-chat-creator="${creator.id}" data-chat-name="${escHtml(creator.name)}" aria-label="Message Creator" title="Message Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; transition: transform 0.2s;">💬</button>
+        <button class="btn-delete-creator" data-delete-creator-id="${creator.id}" data-delete-creator-name="${escHtml(creator.name)}" aria-label="Delete creator" title="Delete Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">🗑️</button>
       </td>
     </tr>
   `).join('');
@@ -1774,6 +1781,253 @@ function renderCreators() {
       window.openChat(btn.dataset.chatCreator, btn.dataset.chatName);
     });
   });
+  body.querySelectorAll('.btn-delete-creator').forEach(btn => {
+    btn.addEventListener('click', () => window.deleteCreator(btn.dataset.deleteCreatorId, btn.dataset.deleteCreatorName));
+  });
+}
+
+// ========================================
+// DELETE ORDER
+// ========================================
+window.deleteOrder = async function(orderId, creatorName) {
+  const confirmed = await confirmModal(
+    '⚠️ Delete Order',
+    `Are you sure you want to permanently delete this order from <strong>${creatorName}</strong>?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone. The order and all associated data will be removed from the database.</span>`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
+
+    if (error) throw error;
+
+    // Remove from local array
+    allOrders = allOrders.filter(o => o.id !== orderId);
+    updateDashboard();
+    showSuccess('Order deleted successfully.');
+  } catch (error) {
+    console.error('Delete order error:', error);
+    showError('Failed to delete order. ' + (error.message || ''));
+  }
+};
+
+// ========================================
+// DELETE CREATOR (and all their orders)
+// ========================================
+window.deleteCreator = async function(creatorId, creatorName) {
+  const creatorOrders = allOrders.filter(o => o.creator_id === creatorId);
+
+  const confirmed = await confirmModal(
+    '⚠️ Delete Creator',
+    `Are you sure you want to permanently delete creator <strong>${creatorName}</strong> and all their <strong>${creatorOrders.length} order(s)</strong>?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone. All orders, messages, and profile data for this creator will be permanently removed.</span>`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    // 1. Delete all orders for this creator
+    if (creatorOrders.length > 0) {
+      const { error: ordersError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('creator_id', creatorId);
+
+      if (ordersError) throw ordersError;
+    }
+
+    // 2. Delete messages for this creator
+    const { error: msgError } = await supabase
+      .from('messages')
+      .delete()
+      .eq('creator_id', creatorId);
+
+    if (msgError) console.warn('Could not delete messages:', msgError.message);
+
+    // 3. Delete profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', creatorId);
+
+    if (profileError) console.warn('Could not delete profile:', profileError.message);
+
+    // Remove from local arrays
+    allOrders = allOrders.filter(o => o.creator_id !== creatorId);
+    allProfiles = allProfiles.filter(p => p.id !== creatorId);
+    allMessages = allMessages.filter(m => m.creator_id !== creatorId);
+
+    updateDashboard();
+    showSuccess(`Creator "${creatorName}" and all associated data deleted successfully.`);
+  } catch (error) {
+    console.error('Delete creator error:', error);
+    showError('Failed to delete creator. ' + (error.message || ''));
+  }
+};
+
+// ========================================
+// EXPORT CREATORS TO EXCEL
+// ========================================
+function exportCreatorsToExcel() {
+  const btn = document.getElementById('download-creators-excel');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Generating...';
+
+  try {
+    // Build creators data from orders (same logic as renderCreators)
+    const creatorsMap = {};
+    allOrders.forEach(order => {
+      const cid = order.creator_id;
+      if (!creatorsMap[cid]) {
+        const profile = allProfiles.find(p => p.id === cid);
+        creatorsMap[cid] = {
+          id: cid,
+          name: order.creator_name || profile?.display_name || 'Unknown',
+          instagram: order.instagram_id || '',
+          contact: order.contact_number || '',
+          email: profile?.email || '',
+          orders: [],
+          totalEarned: 0,
+          completedCount: 0,
+          firstOrder: order.created_at
+        };
+      }
+      const c = creatorsMap[cid];
+      c.orders.push(order);
+      if (order.creator_name) c.name = order.creator_name;
+      if (order.instagram_id) c.instagram = order.instagram_id;
+      if (order.contact_number) c.contact = order.contact_number;
+      if (order.status === 'completed') {
+        c.completedCount++;
+        c.totalEarned += (order.payment_amount || 0) + (order.refund_amount || 0);
+      } else if (order.refund_amount && order.refund_amount > 0) {
+        c.totalEarned += order.refund_amount;
+      }
+      if (order.created_at < c.firstOrder) c.firstOrder = order.created_at;
+    });
+
+    const creators = Object.values(creatorsMap).sort((a, b) => new Date(b.firstOrder) - new Date(a.firstOrder));
+
+    const wb = XLSX.utils.book_new();
+
+    // --- Sheet 1: Creators Summary ---
+    const summaryData = creators.map((c, i) => ({
+      'S.No': i + 1,
+      'Creator Name': c.name,
+      'Email': c.email || '-',
+      'Instagram': c.instagram ? `@${c.instagram}` : '-',
+      'Contact Number': c.contact || '-',
+      'Total Orders': c.orders.length,
+      'Completed Orders': c.completedCount,
+      'Pending Orders': c.orders.filter(o => !['completed', 'rejected'].includes(o.status)).length,
+      'Rejected Orders': c.orders.filter(o => o.status === 'rejected').length,
+      'Total Earned (₹)': c.totalEarned,
+      'Joined Date': new Date(c.firstOrder).toLocaleDateString('en-IN'),
+    }));
+
+    const ws1 = XLSX.utils.json_to_sheet(summaryData);
+
+    // Set column widths
+    ws1['!cols'] = [
+      { wch: 6 },   // S.No
+      { wch: 22 },  // Creator Name
+      { wch: 28 },  // Email
+      { wch: 20 },  // Instagram
+      { wch: 16 },  // Contact
+      { wch: 14 },  // Total Orders
+      { wch: 16 },  // Completed
+      { wch: 15 },  // Pending
+      { wch: 15 },  // Rejected
+      { wch: 16 },  // Total Earned
+      { wch: 14 },  // Joined Date
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws1, 'Creators Summary');
+
+    // --- Sheet 2: All Orders Detail ---
+    const ordersData = [];
+    creators.forEach(c => {
+      c.orders.forEach(order => {
+        ordersData.push({
+          'Creator Name': c.name,
+          'Instagram': c.instagram ? `@${c.instagram}` : '-',
+          'Contact Number': c.contact || '-',
+          'Product': order.product_title || 'Unknown',
+          'Order ID': order.amazon_order_id || '-',
+          'UPI ID': order.upi_id || '-',
+          'Status': (order.status || '').replace(/_/g, ' ').toUpperCase(),
+          'Estimated Arrival': order.estimated_arrival_date ? new Date(order.estimated_arrival_date).toLocaleDateString('en-IN') : '-',
+          'Refund Amount (₹)': order.refund_amount || 0,
+          'Payment Amount (₹)': order.payment_amount || 0,
+          'Screenshot URL': order.screenshot_url || '-',
+          'Review Proof URL': order.review_proof_url || '-',
+          'Reel URL': order.reel_url || '-',
+          'Order Date': new Date(order.created_at).toLocaleDateString('en-IN'),
+          'Last Updated': order.updated_at ? new Date(order.updated_at).toLocaleDateString('en-IN') : '-',
+        });
+      });
+    });
+
+    const ws2 = XLSX.utils.json_to_sheet(ordersData);
+
+    ws2['!cols'] = [
+      { wch: 22 },  // Creator Name
+      { wch: 20 },  // Instagram
+      { wch: 16 },  // Contact
+      { wch: 28 },  // Product
+      { wch: 24 },  // Order ID
+      { wch: 24 },  // UPI ID
+      { wch: 22 },  // Status
+      { wch: 18 },  // Estimated Arrival
+      { wch: 16 },  // Refund Amount
+      { wch: 16 },  // Payment Amount
+      { wch: 50 },  // Screenshot URL
+      { wch: 50 },  // Review Proof URL
+      { wch: 50 },  // Reel URL
+      { wch: 14 },  // Order Date
+      { wch: 14 },  // Last Updated
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws2, 'All Orders');
+
+    // --- Sheet 3: Platform Stats ---
+    const totalCreators = creators.length;
+    const totalOrders = allOrders.length;
+    const totalCompleted = allOrders.filter(o => o.status === 'completed').length;
+    const totalEarned = creators.reduce((sum, c) => sum + c.totalEarned, 0);
+    const totalPending = allOrders.filter(o => !['completed', 'rejected'].includes(o.status)).length;
+
+    const statsData = [
+      { 'Metric': 'Total Creators', 'Value': totalCreators },
+      { 'Metric': 'Total Orders', 'Value': totalOrders },
+      { 'Metric': 'Completed Orders', 'Value': totalCompleted },
+      { 'Metric': 'Pending Orders', 'Value': totalPending },
+      { 'Metric': 'Rejected Orders', 'Value': allOrders.filter(o => o.status === 'rejected').length },
+      { 'Metric': 'Total Amount Paid (₹)', 'Value': totalEarned },
+      { 'Metric': 'Report Generated On', 'Value': new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) },
+    ];
+
+    const ws3 = XLSX.utils.json_to_sheet(statsData);
+    ws3['!cols'] = [{ wch: 26 }, { wch: 30 }];
+
+    XLSX.utils.book_append_sheet(wb, ws3, 'Platform Stats');
+
+    // Generate filename with current date
+    const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }).replace(/\//g, '-');
+    XLSX.writeFile(wb, `BranBuzz_Creators_${dateStr}.xlsx`);
+
+    showSuccess('Excel file downloaded successfully!');
+  } catch (error) {
+    console.error('Excel export error:', error);
+    showError('Failed to generate Excel file. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
 }
 
 // Creator detail modal with full chronological activity log
