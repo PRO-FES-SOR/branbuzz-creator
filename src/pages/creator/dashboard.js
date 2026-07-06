@@ -665,6 +665,10 @@ window.uploadScreenshot = function(orderId) {
         <input type="text" class="form-input" id="amazon-order-id" placeholder="e.g. 402-1234567-8901234" required />
       </div>
       <div class="form-group" style="margin-bottom: var(--space-md);">
+        <label class="form-label">Estimated Arrival Date</label>
+        <input type="date" class="form-input" id="estimated-arrival-date" required />
+      </div>
+      <div class="form-group" style="margin-bottom: var(--space-md);">
         <label class="form-label">UPI ID (for refund)</label>
         <input type="text" class="form-input" id="upi-id" placeholder="e.g. yourname@upi or 9876543210@paytm" required />
       </div>
@@ -679,6 +683,7 @@ window.uploadScreenshot = function(orderId) {
   openModal('Submit Purchase Proof', bodyHTML);
 
   const orderIdInput = document.getElementById('amazon-order-id');
+  const arrivalDateInput = document.getElementById('estimated-arrival-date');
   const upiInput = document.getElementById('upi-id');
 
   let uploader = createUploadArea('screenshot-upload-area', {
@@ -688,21 +693,24 @@ window.uploadScreenshot = function(orderId) {
   });
 
   orderIdInput.addEventListener('input', checkFormReady);
+  arrivalDateInput.addEventListener('input', checkFormReady);
   upiInput.addEventListener('input', checkFormReady);
 
   function checkFormReady() {
     const hasOrderId = orderIdInput.value.trim().length > 0;
+    const hasArrivalDate = arrivalDateInput.value.trim().length > 0;
     const hasUpi = upiInput.value.trim().length > 0;
     const hasFile = uploader.getFile() !== null;
-    document.getElementById('upload-screenshot-btn').disabled = !(hasOrderId && hasUpi && hasFile);
+    document.getElementById('upload-screenshot-btn').disabled = !(hasOrderId && hasArrivalDate && hasUpi && hasFile);
   }
 
   document.getElementById('screenshot-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const file = uploader.getFile();
     const amazonOrderId = orderIdInput.value.trim();
+    const arrivalDate = arrivalDateInput.value.trim();
     const upiId = upiInput.value.trim();
-    if (!file || !amazonOrderId || !upiId) return;
+    if (!file || !amazonOrderId || !arrivalDate || !upiId) return;
 
     const btn = document.getElementById('upload-screenshot-btn');
     btn.disabled = true;
@@ -732,6 +740,7 @@ window.uploadScreenshot = function(orderId) {
         .update({
           screenshot_url: url,
           amazon_order_id: amazonOrderId,
+          estimated_arrival_date: arrivalDate,
           upi_id: upiId,
           status: 'screenshot_uploaded',
           updated_at: new Date().toISOString()
