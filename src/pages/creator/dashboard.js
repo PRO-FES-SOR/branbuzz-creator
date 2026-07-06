@@ -672,7 +672,10 @@ window.uploadScreenshot = function(orderId) {
         <label class="form-label">UPI ID (for refund)</label>
         <input type="text" class="form-input" id="upi-id" placeholder="e.g. yourname@upi or 9876543210@paytm" required />
       </div>
-      <label class="form-label" style="margin-bottom: var(--space-sm); display: block;">Purchase Proof Screenshot</label>
+      <label class="form-label" style="margin-bottom: 4px; display: block;">Purchase Proof Screenshot</label>
+      <p style="font-size: 0.75rem; color: var(--color-accent-orange); margin-bottom: var(--space-sm); font-weight: 500;">
+        Note: Please upload a screenshot that clearly shows the Order ID and Purchase Price.
+      </p>
       <div id="screenshot-upload-area"></div>
       <button type="submit" class="btn btn-primary btn-lg w-full" id="upload-screenshot-btn" style="margin-top: var(--space-lg);" disabled>
         Submit Purchase Proof
