@@ -15,21 +15,34 @@ export function createUploadArea(containerId, options = {}) {
   if (!container) return null;
 
   container.innerHTML = `
-    <div class="upload-area" id="${containerId}-dropzone">
-      <div class="upload-icon">📁</div>
-      <p class="upload-text"><span>Click to upload</span> or drag & drop</p>
-      <p class="upload-text" style="font-size: 0.75rem; margin-top: 0.5rem;">${sublabel}</p>
+    <div class="upload-area" id="${containerId}-dropzone" style="position: relative;">
+      <div id="${containerId}-empty-state">
+        <div class="upload-icon">📁</div>
+        <p class="upload-text"><span>Click to upload</span> or drag & drop</p>
+        <p class="upload-text" style="font-size: 0.75rem; margin-top: 0.5rem;">${sublabel}</p>
+      </div>
+      
+      <div id="${containerId}-success-state" class="hidden" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%;">
+        <div style="background: rgba(16, 185, 129, 0.1); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="var(--color-accent-green, #10B981)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <img id="${containerId}-preview-img" alt="Preview" style="max-height: 120px; border-radius: 8px; object-fit: contain; display: none;" />
+        <div id="${containerId}-file-icon" style="font-size: 2.5rem; display: none; color: var(--color-text-muted);">📄</div>
+        <p id="${containerId}-file-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-primary); max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px;">File selected</p>
+        <button type="button" class="btn btn-secondary btn-sm" style="margin-top: 4px; position: relative; z-index: 5;" onclick="document.getElementById('${containerId}-input').click(); event.stopPropagation();">Change file</button>
+      </div>
+      
       <input type="file" accept="${accept}" id="${containerId}-input" style="display:none" />
-    </div>
-    <div class="upload-preview hidden" id="${containerId}-preview">
-      <img id="${containerId}-preview-img" alt="Preview" />
     </div>
   `;
 
   const dropzone = container.querySelector(`#${containerId}-dropzone`);
   const fileInput = container.querySelector(`#${containerId}-input`);
-  const previewDiv = container.querySelector(`#${containerId}-preview`);
+  const emptyState = container.querySelector(`#${containerId}-empty-state`);
+  const successState = container.querySelector(`#${containerId}-success-state`);
   const previewImg = container.querySelector(`#${containerId}-preview-img`);
+  const fileIcon = container.querySelector(`#${containerId}-file-icon`);
+  const fileName = container.querySelector(`#${containerId}-file-name`);
   let selectedFile = null;
 
   // Click to upload
@@ -66,16 +79,24 @@ export function createUploadArea(containerId, options = {}) {
 
     selectedFile = file;
 
+    emptyState.classList.add('hidden');
+    successState.classList.remove('hidden');
+    fileName.textContent = file.name;
+    dropzone.style.borderColor = 'var(--color-accent-green, #10B981)';
+    dropzone.style.background = 'rgba(16, 185, 129, 0.03)';
+
     // Show preview for images
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e) => {
         previewImg.src = e.target.result;
-        previewDiv.classList.remove('hidden');
+        previewImg.style.display = 'block';
+        fileIcon.style.display = 'none';
       };
       reader.readAsDataURL(file);
     } else {
-      previewDiv.classList.add('hidden');
+      previewImg.style.display = 'none';
+      fileIcon.style.display = 'block';
     }
 
     if (onFileSelected) onFileSelected(file);
@@ -86,7 +107,11 @@ export function createUploadArea(containerId, options = {}) {
     reset: () => {
       selectedFile = null;
       fileInput.value = '';
-      previewDiv.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      successState.classList.add('hidden');
+      dropzone.style.borderColor = '';
+      dropzone.style.background = '';
+      previewImg.src = '';
     }
   };
 }
