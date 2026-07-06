@@ -444,6 +444,39 @@ function updateBadge(id, count) {
   }
 }
 
+function getDeliveryCountdownBadge(arrivalDate, status) {
+  if (!arrivalDate) return '';
+  const terminalStatuses = ['screenshot_verified', 'refunded', 'review_submitted', 'review_verified', 'reel_submitted', 'completed', 'rejected', 'screenshot_rejected', 'review_rejected', 'reel_rejected'];
+  if (terminalStatuses.includes(status)) return '';
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+  
+  const extract = (parts) => {
+    const p = {};
+    parts.forEach(part => p[part.type] = part.value);
+    return new Date(p.year, p.month - 1, p.day);
+  };
+
+  const today = extract(formatter.formatToParts(new Date()));
+  const arrival = extract(formatter.formatToParts(new Date(arrivalDate)));
+
+  const diffTime = arrival - today;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return `<br><span class="badge" style="background: var(--color-accent-red); color: white; font-size: 0.65rem; margin-top: 4px; display: inline-block; padding: 2px 6px;">Overdue by ${Math.abs(diffDays)}d</span>`;
+  } else if (diffDays === 0) {
+    return `<br><span class="badge" style="background: var(--color-accent-orange); color: white; font-size: 0.65rem; margin-top: 4px; display: inline-block; padding: 2px 6px;">Arriving Today</span>`;
+  } else {
+    return `<br><span class="badge" style="background: var(--color-accent-blue, #007bff); color: white; font-size: 0.65rem; margin-top: 4px; display: inline-block; padding: 2px 6px;">In ${diffDays}d</span>`;
+  }
+}
+
 function renderRecentOrders() {
   const body = document.getElementById('recent-orders-body');
   const recent = allOrders.slice(0, 10);
@@ -455,7 +488,10 @@ function renderRecentOrders() {
 
   body.innerHTML = recent.map(order => `
     <tr>
-      <td style="font-weight: 500; color: var(--color-text-primary);">${escHtml(order.creator_name)}</td>
+      <td style="font-weight: 500; color: var(--color-text-primary);">
+        ${escHtml(order.creator_name)}
+        ${getDeliveryCountdownBadge(order.estimated_arrival_date, order.status)}
+      </td>
       <td>${escHtml(order.product_title || 'Unknown')}</td>
       <td style="color: var(--color-accent-teal);">${escHtml(order.instagram_id)}</td>
       <td>${getStatusBadge(order.status)}</td>
@@ -1390,7 +1426,10 @@ function renderAllOrders() {
 
   body.innerHTML = filtered.map(order => `
     <tr>
-      <td style="font-weight: 500; color: var(--color-text-primary);">${escHtml(order.creator_name)}</td>
+      <td style="font-weight: 500; color: var(--color-text-primary);">
+        ${escHtml(order.creator_name)}
+        ${getDeliveryCountdownBadge(order.estimated_arrival_date, order.status)}
+      </td>
       <td>${escHtml(order.product_title || 'Unknown')}</td>
       <td>${escHtml(order.contact_number)}</td>
       <td style="color: var(--color-accent-teal);">@${escHtml(order.instagram_id)}</td>
