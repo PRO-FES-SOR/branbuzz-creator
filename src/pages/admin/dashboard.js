@@ -499,7 +499,7 @@ function renderProductsTable() {
       <td style="font-weight: 600;">₹${product.price || 0}</td>
       <td style="color: var(--color-accent-green);">₹${product.review_payment || 0}</td>
       <td style="color: var(--color-accent-green);">₹${product.reel_payment || 0}</td>
-      <td>${product.is_active ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-rejected">Inactive</span>'}</td>
+      <td>${product.is_active ? (product.campaign_closed ? '<span class="badge badge-warning" style="background: var(--color-accent-orange); color: white;">Campaign Closed</span>' : '<span class="badge badge-active">Active</span>') : '<span class="badge badge-rejected">Inactive</span>'}</td>
       <td>
         <div style="display:flex; gap: var(--space-xs);">
           <button class="btn btn-secondary btn-sm" onclick="window.editProduct('${product.id}')">Edit</button>
@@ -546,10 +546,11 @@ function openProductForm(product = null) {
           <input type="url" class="form-input" id="product-image-url" value="${product?.image_url || ''}" placeholder="https://..." />
         </div>
         <div class="form-group">
-          <label class="form-label">Active</label>
+          <label class="form-label">Status</label>
           <select class="form-select" id="product-active">
-            <option value="true" ${product?.is_active !== false ? 'selected' : ''}>Active</option>
-            <option value="false" ${product?.is_active === false ? 'selected' : ''}>Inactive</option>
+            <option value="active" ${product?.is_active !== false && !product?.campaign_closed ? 'selected' : ''}>Active</option>
+            <option value="closed" ${product?.campaign_closed ? 'selected' : ''}>Campaign Closed!</option>
+            <option value="inactive" ${product?.is_active === false ? 'selected' : ''}>Inactive</option>
           </select>
         </div>
         <div class="form-group">
@@ -593,7 +594,8 @@ function openProductForm(product = null) {
       platform: document.getElementById('product-platform').value,
       amazon_url: document.getElementById('product-amazon-url').value,
       image_url: document.getElementById('product-image-url').value,
-      is_active: document.getElementById('product-active').value === 'true',
+      is_active: document.getElementById('product-active').value !== 'inactive',
+      campaign_closed: document.getElementById('product-active').value === 'closed',
       review_payment: parseFloat(document.getElementById('product-review-payment').value) || 0,
       reel_payment: parseFloat(document.getElementById('product-reel-payment').value) || 0,
       updated_at: new Date().toISOString()

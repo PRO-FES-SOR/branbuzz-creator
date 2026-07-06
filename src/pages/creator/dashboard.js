@@ -284,16 +284,23 @@ function renderProducts() {
   }
 
   grid.innerHTML = products.map((product, index) => `
-    <div class="product-card-modern stagger-${(index % 6) + 1}" data-product-id="${product.id}">
+    <div class="product-card-modern stagger-${(index % 6) + 1}" ${!product.campaign_closed ? `data-product-id="${product.id}"` : ''} ${product.campaign_closed ? 'style="opacity: 0.5; filter: grayscale(100%); pointer-events: none; user-select: none;"' : ''}>
       <div class="product-image-container">
         ${product.image_url
           ? `<img src="${escUrl(product.image_url)}" alt="${escHtml(product.title)}" onerror="this.onerror=null;this.src='';this.alt='Image unavailable';" />`
           : `<span class="placeholder-icon">📦</span>`
         }
+        ${product.campaign_closed ? `
+        <div class="product-badge-closed" style="position: absolute; top: 16px; left: 16px; background: rgba(239, 68, 68, 0.9); color: white; font-size: 0.75rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 2;">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+          Campaign Closed
+        </div>
+        ` : `
         <div class="product-badge-natural">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17 8C8 10 5 16 5 22c0-2 1-7 6-10 1-1 3-2 6-2z"/><path d="M17 8c2-4 4-5 6-5-2 2-3 5-3 8-1 1-3 2-6 2 2-1 4-2 3-5z"/></svg>
           Natural
         </div>
+        `}
         <button class="btn-heart">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
         </button>
@@ -340,6 +347,11 @@ function renderProducts() {
 window.openProductModal = function(productId) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
+
+  if (product.campaign_closed) {
+    showInfo('This campaign is currently closed and not accepting new creators.');
+    return;
+  }
 
   // F6: Prevent duplicate applications
   const existing = orders.find(o => o.product_id === productId && !['rejected', 'completed'].includes(o.status));
