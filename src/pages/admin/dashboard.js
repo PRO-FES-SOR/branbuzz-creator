@@ -1,4 +1,4 @@
-// Admin Dashboard — Supabase
+﻿// Admin Dashboard Ã¢â‚¬â€ Supabase
 import { requireAuth, signOut } from '../../auth.js';
 import { supabase } from '../../supabase.js';
 import { showSuccess, showError, showInfo } from '../../components/toast.js';
@@ -23,6 +23,12 @@ let currentReplyContent = null;
 const PAGE_SIZE = 100;
 let ordersFullyLoaded = false;
 let realtimeChannel = null;
+
+// All Orders panel state
+let ordersPage = 1;
+let ordersPerPage = 10;
+let selectedOrderIds = new Set();
+let openActionMenuId = null;
 
 // ========================================
 // INITIALIZATION
@@ -81,11 +87,39 @@ function setupNavigation() {
 
   document.getElementById('add-product-btn').addEventListener('click', () => openProductForm());
 
-  document.getElementById('order-status-filter').addEventListener('change', renderAllOrders);
-  document.getElementById('order-search').addEventListener('input', renderAllOrders);
+  // Orders filters
+  document.getElementById('order-status-filter').addEventListener('change', () => { ordersPage = 1; renderAllOrders(); });
+  document.getElementById('order-product-filter').addEventListener('change', () => { ordersPage = 1; renderAllOrders(); });
+  document.getElementById('order-date-from').addEventListener('change', () => { ordersPage = 1; renderAllOrders(); });
+  document.getElementById('order-date-to').addEventListener('change', () => { ordersPage = 1; renderAllOrders(); });
+  document.getElementById('order-search').addEventListener('input', () => { ordersPage = 1; renderAllOrders(); });
+  document.getElementById('orders-clear-filters-btn').addEventListener('click', clearOrderFilters);
+  document.getElementById('orders-export-csv-btn').addEventListener('click', exportOrdersCSV);
+
+  // Select all checkbox
+  document.getElementById('orders-select-all').addEventListener('change', (e) => {
+    toggleAllOrders(e.target.checked);
+  });
+
+  // Bulk actions
+  document.getElementById('bulk-mark-refunded-btn').addEventListener('click', bulkMarkRefunded);
+  document.getElementById('bulk-change-status-btn').addEventListener('click', bulkChangeStatus);
+  document.getElementById('bulk-export-btn').addEventListener('click', exportSelectedOrdersCSV);
+  document.getElementById('bulk-delete-btn').addEventListener('click', bulkDeleteOrders);
+
+  // Side panel close
+  document.getElementById('odp-close-btn').addEventListener('click', closeOrderDetailsPanel);
+  document.getElementById('order-details-overlay').addEventListener('click', closeOrderDetailsPanel);
+
+  // Close action menus on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.orders-action-menu')) {
+      closeAllActionMenus();
+    }
+  });
+
   document.getElementById('creator-search').addEventListener('input', renderCreators);
   document.getElementById('download-creators-excel').addEventListener('click', exportCreatorsToExcel);
-  document.getElementById('load-more-btn').addEventListener('click', loadMoreOrders);
 }
 
 // ========================================
@@ -170,7 +204,7 @@ async function loadMessages() {
   }
 }
 
-// D3: Smart realtime — append new messages without refreshing the page
+// D3: Smart realtime Ã¢â‚¬â€ append new messages without refreshing the page
 let adminRealtimeChannel = null;
 
 function subscribeToRealtime() {
@@ -282,10 +316,10 @@ function appendMessageBubbleAdmin(msg) {
         ${attachmentHtml}
         <div class="bubble-meta">
           <span class="bubble-time">${timeString}</span>
-          ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
+          ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? 'Ã¢Å“â€œÃ¢Å“â€œ' : 'Ã¢Å“â€œ'}</span>` : ''}
         </div>
       </div>
-      <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">⋮</button>
+      <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">Ã¢â€¹Â®</button>
       <div class="msg-dropdown">
         <button onclick="window.prepareReply('${escHtml(msg.content).replace(/'/g, "\\'")}')">\Reply</button>
         ${isFromAdmin ? `<button onclick="window.editMessage('${msg.id}', '${escHtml(msg.content).replace(/'/g, "\\'")}')">Edit</button>` : ''}
@@ -318,9 +352,9 @@ function renderInboxSidebarOnly() {
     
     let statusIcon = '';
     if (latest && latest.sender_id === currentUser.id) {
-      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? '✓✓' : '✓'}</span>`;
+      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? 'Ã¢Å“â€œÃ¢Å“â€œ' : 'Ã¢Å“â€œ'}</span>`;
     } else if (unreadCount > 0) {
-       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">🟢</span>`;
+       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">Ã°Å¸Å¸Â¢</span>`;
     }
 
     return {
@@ -335,7 +369,7 @@ function renderInboxSidebarOnly() {
       <div class="chat-contact ${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('${c.id}', '${escHtml(c.name)}')">
         <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
         <div class="contact-info">
-          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐' : ''}</div>
+          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? 'Ã¢Â­Â' : ''}</div>
           <div class="contact-preview" style="${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
             ${c.statusIcon}${escHtml(c.latestMsg)}
           </div>
@@ -364,7 +398,7 @@ function refreshSection(section) {
 }
 
 // ========================================
-// DASHBOARD STATS (D4: stats + badges only — no full re-render)
+// DASHBOARD STATS (D4: stats + badges only Ã¢â‚¬â€ no full re-render)
 // ========================================
 function updateDashboardStats() {
   const activeProducts = products.filter(p => p.is_active).length;
@@ -396,7 +430,7 @@ function updateDashboardStats() {
   updateBadge('admin-inbox-badge', unreadMessages);
 }
 
-// D4: Backward-compat wrapper — called from loadAllData and nav
+// D4: Backward-compat wrapper Ã¢â‚¬â€ called from loadAllData and nav
 function updateDashboard() {
   updateDashboardStats();
   refreshActiveSection();
@@ -526,7 +560,7 @@ function renderProductsTable() {
       <td>
         <div style="display:flex; align-items:center; gap: var(--space-sm);">
           <div style="width: 40px; height: 40px; border-radius: var(--radius-sm); overflow:hidden; background: var(--color-bg-secondary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            ${product.image_url ? `<img src="${product.image_url}" style="width:100%;height:100%;object-fit:cover;" />` : '📦'}
+            ${product.image_url ? `<img src="${product.image_url}" style="width:100%;height:100%;object-fit:cover;" />` : 'Ã°Å¸â€œÂ¦'}
           </div>
           <div>
             <div style="font-weight: 600; color: var(--color-text-primary); font-size: 0.85rem;">${product.title}</div>
@@ -534,9 +568,9 @@ function renderProductsTable() {
           </div>
         </div>
       </td>
-      <td style="font-weight: 600;">₹${product.price || 0}</td>
-      <td style="color: var(--color-accent-green);">₹${product.review_payment || 0}</td>
-      <td style="color: var(--color-accent-green);">₹${product.reel_payment || 0}</td>
+      <td style="font-weight: 600;">Ã¢â€šÂ¹${product.price || 0}</td>
+      <td style="color: var(--color-accent-green);">Ã¢â€šÂ¹${product.review_payment || 0}</td>
+      <td style="color: var(--color-accent-green);">Ã¢â€šÂ¹${product.reel_payment || 0}</td>
       <td>${product.is_active ? (product.campaign_closed ? '<span class="badge badge-warning" style="background: var(--color-accent-orange); color: white;">Campaign Closed</span>' : '<span class="badge badge-active">Active</span>') : '<span class="badge badge-rejected">Inactive</span>'}</td>
       <td>
         <div style="display:flex; gap: var(--space-xs);">
@@ -564,7 +598,7 @@ function openProductForm(product = null) {
           <textarea class="form-textarea" id="product-description">${product?.description || ''}</textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">Price (₹)</label>
+          <label class="form-label">Price (Ã¢â€šÂ¹)</label>
           <input type="number" class="form-input" id="product-price" value="${product?.price || ''}" required min="0" />
         </div>
         <div class="form-group">
@@ -592,11 +626,11 @@ function openProductForm(product = null) {
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Review Payment (₹)</label>
+          <label class="form-label">Review Payment (Ã¢â€šÂ¹)</label>
           <input type="number" class="form-input" id="product-review-payment" value="${product?.review_payment || 0}" min="0" />
         </div>
         <div class="form-group">
-          <label class="form-label">Reel Payment (₹)</label>
+          <label class="form-label">Reel Payment (Ã¢â€šÂ¹)</label>
           <input type="number" class="form-input" id="product-reel-payment" value="${product?.reel_payment || 0}" min="0" />
         </div>
       </div>
@@ -712,7 +746,7 @@ function renderScreenshots() {
   if (pending.length === 0 && history.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📸</div>
+        <div class="empty-icon">Ã°Å¸â€œÂ¸</div>
         <h3>No pending screenshots</h3>
         <p>All purchase screenshots have been reviewed.</p>
       </div>
@@ -721,14 +755,14 @@ function renderScreenshots() {
   }
 
   if (pending.length > 0) {
-    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">⏳ Pending Review (${pending.length})</h3>`;
+    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">Ã¢ÂÂ³ Pending Review (${pending.length})</h3>`;
     html += pending.map((order, i) => renderScreenshotCard(order, i, true)).join('');
   } else {
-    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">✅ No pending screenshots to review</p></div>`;
+    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">Ã¢Å“â€¦ No pending screenshots to review</p></div>`;
   }
 
   if (history.length > 0) {
-    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">📋 History (${history.length})</h3>`;
+    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">Ã°Å¸â€œâ€¹ History (${history.length})</h3>`;
     html += history.map((order, i) => renderScreenshotCard(order, i, false)).join('');
   }
 
@@ -827,7 +861,7 @@ window.verifyScreenshot = async function(orderId) {
   }
 };
 
-// Screenshot-specific rejection — allows creator to resubmit
+// Screenshot-specific rejection Ã¢â‚¬â€ allows creator to resubmit
 window.rejectScreenshot = async function(orderId) {
   const bodyHTML = `
     <div class="form-group" style="margin-bottom: var(--space-lg);">
@@ -884,7 +918,7 @@ window.markRefunded = async function(orderId) {
       </div>
     ` : ''}
     <div class="form-group" style="margin-bottom: var(--space-lg);">
-      <label class="form-label">Refund Amount (₹)</label>
+      <label class="form-label">Refund Amount (Ã¢â€šÂ¹)</label>
       <input type="number" class="form-input" id="refund-amount" value="${order?.product_price || ''}" placeholder="Enter refund amount" required min="0" />
     </div>
     <button class="btn btn-success btn-lg w-full" id="confirm-refund-btn">Confirm Refund</button>
@@ -949,14 +983,14 @@ function renderRefunds() {
   }
 
   if (pending.length > 0) {
-    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">⏳ Pending Refunds (${pending.length})</h3>`;
+    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">Ã¢ÂÂ³ Pending Refunds (${pending.length})</h3>`;
     html += pending.map((order, i) => renderRefundCard(order, i, true)).join('');
   } else {
-    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">✅ No pending refunds to process</p></div>`;
+    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">Ã¢Å“â€¦ No pending refunds to process</p></div>`;
   }
 
   if (history.length > 0) {
-    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">📋 Refund History (${history.length})</h3>`;
+    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">Ã°Å¸â€œâ€¹ Refund History (${history.length})</h3>`;
     html += history.map((order, i) => renderRefundCard(order, i, false)).join('');
   }
 
@@ -1024,7 +1058,7 @@ function renderReviewProofs() {
   if (pending.length === 0 && history.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">⭐</div>
+        <div class="empty-icon">Ã¢Â­Â</div>
         <h3>No pending review proofs</h3>
         <p>All review proofs have been verified.</p>
       </div>
@@ -1033,14 +1067,14 @@ function renderReviewProofs() {
   }
 
   if (pending.length > 0) {
-    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">⏳ Pending Review (${pending.length})</h3>`;
+    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">Ã¢ÂÂ³ Pending Review (${pending.length})</h3>`;
     html += pending.map((order, i) => renderReviewCard(order, i, true)).join('');
   } else {
-    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">✅ No pending review proofs to verify</p></div>`;
+    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">Ã¢Å“â€¦ No pending review proofs to verify</p></div>`;
   }
 
   if (history.length > 0) {
-    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">📋 History (${history.length})</h3>`;
+    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">Ã°Å¸â€œâ€¹ History (${history.length})</h3>`;
     html += history.map((order, i) => renderReviewCard(order, i, false)).join('');
   }
 
@@ -1131,7 +1165,7 @@ window.approveReview = async function(orderId) {
   }
 };
 
-// F10: Reject review — creator can resubmit
+// F10: Reject review Ã¢â‚¬â€ creator can resubmit
 window.rejectReview = async function(orderId) {
   const reason = prompt('Reason for review rejection (will be shown to creator):');
   if (reason === null) return; // cancelled
@@ -1173,7 +1207,7 @@ function renderReels() {
   if (pending.length === 0 && history.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">🎬</div>
+        <div class="empty-icon">Ã°Å¸Å½Â¬</div>
         <h3>No pending reels</h3>
         <p>All submitted reels have been reviewed.</p>
       </div>
@@ -1182,14 +1216,14 @@ function renderReels() {
   }
 
   if (pending.length > 0) {
-    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">⏳ Pending Review (${pending.length})</h3>`;
+    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">Ã¢ÂÂ³ Pending Review (${pending.length})</h3>`;
     html += pending.map((order, i) => renderReelCard(order, i, true)).join('');
   } else {
-    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">✅ No pending reels to review</p></div>`;
+    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">Ã¢Å“â€¦ No pending reels to review</p></div>`;
   }
 
   if (history.length > 0) {
-    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">📋 History (${history.length})</h3>`;
+    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">Ã°Å¸â€œâ€¹ History (${history.length})</h3>`;
     html += history.map((order, i) => renderReelCard(order, i, false)).join('');
   }
 
@@ -1224,8 +1258,8 @@ function renderReelCard(order, i, isPending) {
         <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);">Reel:</p>
         ${order.reel_url ? (
           isExternal
-            ? `<a href="${escUrl(order.reel_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top: var(--space-xs);">🔗 View Reel on Instagram/YouTube</a>`
-            : `<a href="${escUrl(order.reel_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top: var(--space-xs);">📥 Download Reel Video</a>`
+            ? `<a href="${escUrl(order.reel_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top: var(--space-xs);">Ã°Å¸â€â€” View Reel on Instagram/YouTube</a>`
+            : `<a href="${escUrl(order.reel_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top: var(--space-xs);">Ã°Å¸â€œÂ¥ Download Reel Video</a>`
         ) : '<p style="color: var(--color-text-muted);">No reel provided</p>'}
         ${order.admin_notes && !isPending ? `<p style="font-size: 0.8rem; color: var(--color-accent-orange); margin-top: var(--space-sm);"><strong>Admin Notes:</strong> ${escHtml(order.admin_notes)}</p>` : ''}
         ${order.payment_amount && !isPending ? `<p style="font-size: 0.85rem; color: var(--color-accent-green); margin-top: var(--space-sm);"><strong>Payment:</strong> \u20B9${order.payment_amount}</p>` : ''}
@@ -1261,21 +1295,21 @@ window.approveReel = async function(orderId) {
       </div>
     ` : ''}
     <div style="background: var(--color-bg-secondary); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg);">
-      <p style="font-size: 0.85rem; color: var(--color-text-muted);">Review Payment: <strong style="color: var(--color-accent-green);">₹${reviewPay}</strong></p>
-      <p style="font-size: 0.85rem; color: var(--color-text-muted);">Reel Payment: <strong style="color: var(--color-accent-green);">₹${reelPay}</strong></p>
+      <p style="font-size: 0.85rem; color: var(--color-text-muted);">Review Payment: <strong style="color: var(--color-accent-green);">Ã¢â€šÂ¹${reviewPay}</strong></p>
+      <p style="font-size: 0.85rem; color: var(--color-text-muted);">Reel Payment: <strong style="color: var(--color-accent-green);">Ã¢â€šÂ¹${reelPay}</strong></p>
     </div>
     <div class="form-group" style="margin-bottom: var(--space-lg);">
-      <label class="form-label">Total Payment Amount (₹)</label>
+      <label class="form-label">Total Payment Amount (Ã¢â€šÂ¹)</label>
       <input type="number" class="form-input" id="payment-amount" value="${totalPay}" required min="0" />
     </div>
     <div class="form-group" style="margin-bottom: var(--space-lg);">
       <label class="form-label">Admin Notes (optional)</label>
       <textarea class="form-textarea" id="admin-notes" placeholder="Any notes about this payment..."></textarea>
     </div>
-    <button class="btn btn-success btn-lg w-full" id="confirm-payment-btn">✓ Complete & Mark Paid</button>
+    <button class="btn btn-success btn-lg w-full" id="confirm-payment-btn">Ã¢Å“â€œ Complete & Mark Paid</button>
   `;
 
-  openModal('Complete Order — Payment', bodyHTML);
+  openModal('Complete Order Ã¢â‚¬â€ Payment', bodyHTML);
 
   document.getElementById('confirm-payment-btn').addEventListener('click', async () => {
     const amount = parseFloat(document.getElementById('payment-amount').value);
@@ -1307,14 +1341,14 @@ window.approveReel = async function(orderId) {
         return;
       }
       closeModal();
-      showSuccess(`Order completed! ₹${amount} payment recorded.`);
+      showSuccess(`Order completed! Ã¢â€šÂ¹${amount} payment recorded.`);
       await loadOrders();
       renderReels();
       updateDashboard();
     } catch (error) {
       showError('Failed to update order.');
       btn.disabled = false;
-      btn.textContent = '✓ Complete & Mark Paid';
+      btn.textContent = 'Ã¢Å“â€œ Complete & Mark Paid';
     }
   });
 };
@@ -1361,7 +1395,7 @@ window.rejectOrder = async function(orderId) {
   });
 };
 
-// Reel-specific rejection — allows creator to resubmit
+// Reel-specific rejection Ã¢â‚¬â€ allows creator to resubmit
 window.rejectReel = async function(orderId) {
   const bodyHTML = `
     <div class="form-group" style="margin-bottom: var(--space-lg);">
@@ -1401,11 +1435,14 @@ window.rejectReel = async function(orderId) {
 };
 
 // ========================================
-// ALL ORDERS TABLE
+// ALL ORDERS TABLE Ã¢â‚¬â€ REDESIGNED
 // ========================================
-function renderAllOrders() {
-  const body = document.getElementById('all-orders-body');
+
+function getFilteredOrders() {
   const statusFilter = document.getElementById('order-status-filter').value;
+  const productFilter = document.getElementById('order-product-filter').value;
+  const dateFrom = document.getElementById('order-date-from').value;
+  const dateTo = document.getElementById('order-date-to').value;
   const searchQuery = document.getElementById('order-search').value.toLowerCase().trim();
 
   let filtered = allOrders;
@@ -1414,266 +1451,1159 @@ function renderAllOrders() {
     filtered = filtered.filter(o => o.status === statusFilter);
   }
 
+  if (productFilter) {
+    filtered = filtered.filter(o => o.product_id === productFilter);
+  }
+
+  if (dateFrom) {
+    const from = new Date(dateFrom);
+    from.setHours(0, 0, 0, 0);
+    filtered = filtered.filter(o => new Date(o.created_at) >= from);
+  }
+
+  if (dateTo) {
+    const to = new Date(dateTo);
+    to.setHours(23, 59, 59, 999);
+    filtered = filtered.filter(o => new Date(o.created_at) <= to);
+  }
+
   if (searchQuery) {
     filtered = filtered.filter(o =>
       (o.creator_name || '').toLowerCase().includes(searchQuery) ||
-      (o.instagram_id || '').toLowerCase().includes(searchQuery)
+      (o.instagram_id || '').toLowerCase().includes(searchQuery) ||
+      (o.contact_number || '').toLowerCase().includes(searchQuery) ||
+      (o.amazon_order_id || '').toLowerCase().includes(searchQuery) ||
+      (o.upi_id || '').toLowerCase().includes(searchQuery)
     );
   }
 
-  if (filtered.length === 0) {
+  return filtered;
+}
+
+function renderOrdersStatsCards() {
+  const strip = document.getElementById('orders-stats-strip');
+  const total = allOrders.length;
+  const verified = allOrders.filter(o => o.status === 'screenshot_verified').length;
+  const pending = allOrders.filter(o => o.status === 'screenshot_uploaded').length;
+  const refunded = allOrders.filter(o => o.status === 'refunded').length;
+  const interested = allOrders.filter(o => o.status === 'interested').length;
+  const rejected = allOrders.filter(o => o.status === 'rejected').length;
+
+  const pct = (n) => total > 0 ? (n / total * 100).toFixed(1) : '0.0';
+
+  strip.innerHTML = `
+    <div class="orders-stat-card">
+      <div class="orders-stat-icon total">\uD83D\uDCE6</div>
+      <div class="orders-stat-info">
+        <div class="orders-stat-value">${total}</div>
+        <div class="orders-stat-label">Total Orders</div>
+        <div class="orders-stat-sub">All time</div>
+      </div>
+    </div>
+    <div class="orders-stat-card">
+      <div class="orders-stat-icon verified">\u2705</div>
+      <div class="orders-stat-info">
+        <div class="orders-stat-value">${verified}</div>
+        <div class="orders-stat-label">Screenshot Verified</div>
+        <div class="orders-stat-sub">${pct(verified)}% of total</div>
+      </div>
+    </div>
+    <div class="orders-stat-card">
+      <div class="orders-stat-icon pending">\u26A0\uFE0F</div>
+      <div class="orders-stat-info">
+        <div class="orders-stat-value">${pending}</div>
+        <div class="orders-stat-label">Pending Refunds</div>
+        <div class="orders-stat-sub">${pct(pending)}% of total</div>
+      </div>
+    </div>
+    <div class="orders-stat-card">
+      <div class="orders-stat-icon refunded">\uD83D\uDCB0</div>
+      <div class="orders-stat-info">
+        <div class="orders-stat-value">${refunded}</div>
+        <div class="orders-stat-label">Refunded</div>
+        <div class="orders-stat-sub">${pct(refunded)}% of total</div>
+      </div>
+    </div>
+    <div class="orders-stat-card">
+      <div class="orders-stat-icon interested">\uD83D\uDC99</div>
+      <div class="orders-stat-info">
+        <div class="orders-stat-value">${interested}</div>
+        <div class="orders-stat-label">Interested</div>
+        <div class="orders-stat-sub">${pct(interested)}% of total</div>
+      </div>
+    </div>
+    <div class="orders-stat-card">
+      <div class="orders-stat-icon rejected">\u274C</div>
+      <div class="orders-stat-info">
+        <div class="orders-stat-value">${rejected}</div>
+        <div class="orders-stat-label">Rejected</div>
+        <div class="orders-stat-sub">${pct(rejected)}% of total</div>
+      </div>
+    </div>
+  `;
+}
+
+function populateProductFilter() {
+  const select = document.getElementById('order-product-filter');
+  const currentVal = select.value;
+  select.innerHTML = '<option value="">All Products</option>';
+  products.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.title || p.name || 'Unknown';
+    select.appendChild(opt);
+  });
+  select.value = currentVal;
+}
+
+function renderAllOrders() {
+  const body = document.getElementById('all-orders-body');
+
+  // Render stats cards
+  renderOrdersStatsCards();
+
+  // Populate product filter dropdown
+  populateProductFilter();
+
+  // Get filtered orders
+  const filtered = getFilteredOrders();
+  const totalFiltered = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / ordersPerPage));
+
+  // Clamp page
+  if (ordersPage > totalPages) ordersPage = totalPages;
+  if (ordersPage < 1) ordersPage = 1;
+
+  const startIdx = (ordersPage - 1) * ordersPerPage;
+  const endIdx = Math.min(startIdx + ordersPerPage, totalFiltered);
+  const pageOrders = filtered.slice(startIdx, endIdx);
+
+  if (totalFiltered === 0) {
     body.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 2rem; color: var(--color-text-muted);">No orders found</td></tr>';
+    renderOrdersPagination(0, 0, 0, 1);
+    updateBulkBar();
     return;
   }
 
-  body.innerHTML = filtered.map(order => `
-    <tr>
-      <td style="font-weight: 500; color: var(--color-text-primary);">
-        ${escHtml(order.creator_name)}
-        ${getDeliveryCountdownBadge(order.estimated_arrival_date, order.status)}
-      </td>
-      <td>${escHtml(order.product_title || 'Unknown')}</td>
-      <td>${escHtml(order.contact_number)}</td>
-      <td style="color: var(--color-accent-teal);">@${escHtml(order.instagram_id)}</td>
-      <td>${order.amazon_order_id ? `<span style="font-family: monospace; font-size: 0.75rem;">${escHtml(order.amazon_order_id)}</span>` : '<span style="color: var(--color-text-muted);">—</span>'}</td>
-      <td>${order.upi_id ? `<span style="color: var(--color-accent-teal); font-size: 0.8rem;">${escHtml(order.upi_id)}</span>` : '<span style="color: var(--color-text-muted);">—</span>'}</td>
-      <td>${getStatusBadge(order.status)}</td>
-      <td>${new Date(order.created_at).toLocaleDateString()}</td>
+  body.innerHTML = pageOrders.map(order => {
+    const isSelected = selectedOrderIds.has(order.id);
+    const product = products.find(p => p.id === order.product_id);
+    const initials = getCreatorInitials(order.creator_name);
+    const productThumb = product && product.image_url
+      ? `<img class="orders-product-thumb" src="${escUrl(product.image_url)}" alt="" />`
+      : `<div class="orders-product-thumb" style="display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--color-text-muted);">\uD83D\uDCE6</div>`;
+
+    return `
+    <tr class="${isSelected ? 'selected' : ''}" data-order-id="${order.id}">
+      <td><input type="checkbox" class="order-row-checkbox" data-order-id="${order.id}" ${isSelected ? 'checked' : ''} /></td>
       <td>
-        <div style="display:flex; gap: var(--space-xs); flex-wrap: wrap; align-items: center;">
-          <button class="btn-eye" data-order-id="${order.id}" aria-label="View order details" title="View Details">👁</button>
-          ${getOrderActionButtons(order)}
-          <button class="btn-delete-order" data-delete-order-id="${order.id}" data-delete-order-name="${escHtml(order.creator_name)}" aria-label="Delete order" title="Delete Order" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">🗑️</button>
+        <div class="orders-creator-cell">
+          <div class="orders-creator-avatar">${initials}</div>
+          <div class="orders-creator-info">
+            <span class="orders-creator-name">${escHtml(order.creator_name)}</span>
+            <span class="orders-creator-handle">@${escHtml(order.instagram_id)}</span>
+            <span class="orders-creator-contact">${escHtml(order.contact_number || '')} ${order.contact_number ? `<button class="btn-copy" data-copy="${escHtml(order.contact_number)}" title="Copy">\uD83D\uDCCB</button>` : ''}</span>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="orders-product-cell">
+          ${productThumb}
+          <span class="orders-product-name">${escHtml(order.product_title || 'Unknown')}</span>
+        </div>
+      </td>
+      <td>
+        ${order.contact_number
+          ? `<span class="orders-copyable">${escHtml(order.contact_number)} <button class="btn-copy" data-copy="${escHtml(order.contact_number)}" title="Copy">\uD83D\uDCCB</button></span>`
+          : '<span style="color: var(--color-text-muted);">\u2014</span>'}
+      </td>
+      <td>
+        ${order.amazon_order_id
+          ? `<span class="orders-copyable">${escHtml(order.amazon_order_id)} <button class="btn-copy" data-copy="${escHtml(order.amazon_order_id)}" title="Copy">\uD83D\uDCCB</button></span>`
+          : '<span style="color: var(--color-text-muted);">\u2014</span>'}
+      </td>
+      <td>
+        ${order.upi_id
+          ? `<span class="orders-copyable">${escHtml(order.upi_id)} <button class="btn-copy" data-copy="${escHtml(order.upi_id)}" title="Copy">\uD83D\uDCCB</button></span>`
+          : '<span style="color: var(--color-text-muted);">\u2014</span>'}
+      </td>
+      <td>${getStatusBadge(order.status)}</td>
+      <td style="white-space: nowrap;">${new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+      <td>
+        <div class="orders-actions-cell">
+          <button class="btn-eye" data-view-order-id="${order.id}" title="View Details">\uD83D\uDC41</button>
+          <button class="btn-action-sm" data-view-order-id="${order.id}" title="View Details">\uD83D\uDCC4</button>
+          <div class="orders-action-menu">
+            <button class="btn-action-sm" data-toggle-menu="${order.id}" title="More actions">\u22EE</button>
+            <div class="orders-action-dropdown hidden" id="action-menu-${order.id}">
+              ${getOrderMenuItems(order)}
+            </div>
+          </div>
         </div>
       </td>
     </tr>
-  `).join('');
+    `;
+  }).join('');
 
-  body.querySelectorAll('.btn-eye[data-order-id]').forEach(btn => {
-    btn.addEventListener('click', () => window.viewOrderDetails(btn.dataset.orderId));
-  });
-  body.querySelectorAll('[data-action="verify-screenshot"]').forEach(btn => {
-    btn.addEventListener('click', () => window.verifyScreenshot(btn.dataset.id));
-  });
-  body.querySelectorAll('[data-action="reject-order"]').forEach(btn => {
-    btn.addEventListener('click', () => window.rejectOrder(btn.dataset.id));
-  });
-  body.querySelectorAll('[data-action="mark-refunded"]').forEach(btn => {
-    btn.addEventListener('click', () => window.markRefunded(btn.dataset.id));
-  });
-  body.querySelectorAll('[data-action="approve-review"]').forEach(btn => {
-    btn.addEventListener('click', () => window.approveReview(btn.dataset.id));
-  });
-  body.querySelectorAll('[data-action="reject-review"]').forEach(btn => {
-    btn.addEventListener('click', () => window.rejectReview(btn.dataset.id));
-  });
-  body.querySelectorAll('[data-action="preview-image"]').forEach(btn => {
-    btn.addEventListener('click', () => window.previewImage(btn.dataset.url));
-  });
-  body.querySelectorAll('[data-action="approve-reel"]').forEach(btn => {
-    btn.addEventListener('click', () => window.approveReel(btn.dataset.id));
-  });
-  body.querySelectorAll('.btn-delete-order').forEach(btn => {
-    btn.addEventListener('click', () => window.deleteOrder(btn.dataset.deleteOrderId, btn.dataset.deleteOrderName));
-  });
+  // Render pagination
+  renderOrdersPagination(startIdx + 1, endIdx, totalFiltered, totalPages);
 
-  // D5: Show/hide Load More button
-  const loadMoreContainer = document.getElementById('load-more-container');
-  if (loadMoreContainer) {
-    if (ordersFullyLoaded) {
-      loadMoreContainer.classList.add('hidden');
-    } else {
-      loadMoreContainer.classList.remove('hidden');
-    }
-  }
+  // Bind events
+  bindOrderTableEvents();
+  updateBulkBar();
 }
 
-function getOrderActionButtons(order) {
+function getCreatorInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+}
+
+function getOrderMenuItems(order) {
+  let items = '';
   switch (order.status) {
     case 'screenshot_uploaded':
-      return `
-        <button class="btn btn-success btn-sm" data-action="verify-screenshot" data-id="${order.id}">Verify</button>
-        <button class="btn btn-danger btn-sm" data-action="reject-order" data-id="${order.id}">Reject</button>
-      `;
+      items += `<button data-action="verify-screenshot" data-id="${order.id}">\u2705 Verify Screenshot</button>`;
+      items += `<button data-action="reject-order" data-id="${order.id}">\u274C Reject Order</button>`;
+      break;
     case 'screenshot_verified':
-      return `<button class="btn btn-primary btn-sm" data-action="mark-refunded" data-id="${order.id}">Mark Refunded</button>`;
+      items += `<button data-action="mark-refunded" data-id="${order.id}">\uD83D\uDCB8 Mark Refunded</button>`;
+      break;
     case 'review_submitted':
-      return `
-        <button class="btn btn-success btn-sm" data-action="approve-review" data-id="${order.id}">Verify Review</button>
-        <button class="btn btn-warning btn-sm" data-action="reject-review" data-id="${order.id}">\u21A9</button>
-        ${order.review_proof_url ? `<button class="btn btn-secondary btn-sm" data-action="preview-image" data-url="${escUrl(order.review_proof_url)}">View Proof</button>` : ''}
-      `;
+      items += `<button data-action="approve-review" data-id="${order.id}">\u2705 Verify Review</button>`;
+      items += `<button data-action="reject-review" data-id="${order.id}">\u21A9 Reject Review</button>`;
+      if (order.review_proof_url) {
+        items += `<button data-action="preview-image" data-url="${escUrl(order.review_proof_url)}">\uD83D\uDDBC View Proof</button>`;
+      }
+      break;
     case 'reel_submitted':
-      return `<button class="btn btn-success btn-sm" data-action="approve-reel" data-id="${order.id}">Approve & Pay</button>`;
-    case 'completed':
-      return `<span style="font-size: 0.75rem; color: var(--color-accent-green);">₹${order.payment_amount || 0} paid</span>`;
-    case 'rejected':
-      return `<span style="font-size: 0.75rem; color: var(--color-accent-red);">Rejected</span>`;
-    case 'screenshot_rejected':
-      return `<span style="font-size: 0.75rem; color: var(--color-accent-orange);">Awaiting Screenshot Resubmit</span>`;
-    case 'reel_rejected':
-      return `<span style="font-size: 0.75rem; color: var(--color-accent-orange);">Awaiting Reel Resubmit</span>`;
-    case 'review_rejected':
-      return `<span style="font-size: 0.75rem; color: var(--color-accent-orange);">Awaiting Review Resubmit</span>`;
-    default:
-      return `<span style="font-size: 0.75rem; color: var(--color-text-muted);">—</span>`;
+      items += `<button data-action="approve-reel" data-id="${order.id}">\u2705 Approve & Pay</button>`;
+      break;
+  }
+  items += `<button class="danger-item" data-action="delete-order" data-id="${order.id}" data-name="${escHtml(order.creator_name)}">\uD83D\uDDD1 Delete Order</button>`;
+  return items;
+}
+
+function bindOrderTableEvents() {
+  const body = document.getElementById('all-orders-body');
+
+  // Checkboxes
+  body.querySelectorAll('.order-row-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      toggleOrderSelection(cb.dataset.orderId, cb.checked);
+    });
+  });
+
+  // View details (eye + doc buttons)
+  body.querySelectorAll('[data-view-order-id]').forEach(btn => {
+    btn.addEventListener('click', () => openOrderDetailsPanel(btn.dataset.viewOrderId));
+  });
+
+  // Copy buttons
+  body.querySelectorAll('.btn-copy[data-copy]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyToClipboard(btn.dataset.copy, btn);
+    });
+  });
+
+  // Action menu toggles
+  body.querySelectorAll('[data-toggle-menu]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menuId = btn.dataset.toggleMenu;
+      const menu = document.getElementById(`action-menu-${menuId}`);
+      const wasHidden = menu.classList.contains('hidden');
+      closeAllActionMenus();
+      if (wasHidden) {
+        menu.classList.remove('hidden');
+        openActionMenuId = menuId;
+      }
+    });
+  });
+
+  // Action menu items
+  body.querySelectorAll('[data-action="verify-screenshot"]').forEach(btn => {
+    btn.addEventListener('click', () => { closeAllActionMenus(); window.verifyScreenshot(btn.dataset.id); });
+  });
+  body.querySelectorAll('[data-action="reject-order"]').forEach(btn => {
+    btn.addEventListener('click', () => { closeAllActionMenus(); window.rejectOrder(btn.dataset.id); });
+  });
+  body.querySelectorAll('[data-action="mark-refunded"]').forEach(btn => {
+    btn.addEventListener('click', () => { closeAllActionMenus(); window.markRefunded(btn.dataset.id); });
+  });
+  body.querySelectorAll('[data-action="approve-review"]').forEach(btn => {
+    btn.addEventListener('click', () => { closeAllActionMenus(); window.approveReview(btn.dataset.id); });
+  });
+  body.querySelectorAll('[data-action="reject-review"]').forEach(btn => {
+    btn.addEventListener('click', () => { closeAllActionMenus(); window.rejectReview(btn.dataset.id); });
+  });
+  body.querySelectorAll('[data-action="preview-image"]').forEach(btn => {
+    btn.addEventListener('click', () => { closeAllActionMenus(); window.previewImage(btn.dataset.url); });
+  });
+  body.querySelectorAll('[data-action="approve-reel"]').forEach(btn => {
+    btn.addEventListener('click', () => { closeAllActionMenus(); window.approveReel(btn.dataset.id); });
+  });
+  body.querySelectorAll('[data-action="delete-order"]').forEach(btn => {
+    btn.addEventListener('click', () => { closeAllActionMenus(); window.deleteOrder(btn.dataset.id, btn.dataset.name); });
+  });
+}
+
+function closeAllActionMenus() {
+  document.querySelectorAll('.orders-action-dropdown').forEach(m => m.classList.add('hidden'));
+  openActionMenuId = null;
+}
+
+function renderOrdersPagination(start, end, total, totalPages) {
+  const bar = document.getElementById('orders-pagination-bar');
+
+  let pagesHtml = '';
+  const maxVisible = 5;
+
+  // Previous button
+  pagesHtml += `<button class="orders-page-btn" data-page="${ordersPage - 1}" ${ordersPage <= 1 ? 'disabled' : ''}>&lt;</button>`;
+
+  if (totalPages <= maxVisible + 2) {
+    for (let i = 1; i <= totalPages; i++) {
+      pagesHtml += `<button class="orders-page-btn ${i === ordersPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+    }
+  } else {
+    pagesHtml += `<button class="orders-page-btn ${1 === ordersPage ? 'active' : ''}" data-page="1">1</button>`;
+
+    let startPage = Math.max(2, ordersPage - 1);
+    let endPage = Math.min(totalPages - 1, ordersPage + 1);
+
+    if (ordersPage <= 3) {
+      endPage = Math.min(4, totalPages - 1);
+    }
+    if (ordersPage >= totalPages - 2) {
+      startPage = Math.max(totalPages - 3, 2);
+    }
+
+    if (startPage > 2) {
+      pagesHtml += '<span class="orders-page-ellipsis">\u2026</span>';
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pagesHtml += `<button class="orders-page-btn ${i === ordersPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+    }
+
+    if (endPage < totalPages - 1) {
+      pagesHtml += '<span class="orders-page-ellipsis">\u2026</span>';
+    }
+
+    pagesHtml += `<button class="orders-page-btn ${totalPages === ordersPage ? 'active' : ''}" data-page="${totalPages}">${totalPages}</button>`;
+  }
+
+  // Next button
+  pagesHtml += `<button class="orders-page-btn" data-page="${ordersPage + 1}" ${ordersPage >= totalPages ? 'disabled' : ''}>&gt;</button>`;
+
+  bar.innerHTML = `
+    <span class="orders-pagination-info">Showing ${total > 0 ? start : 0} to ${end} of ${total} orders</span>
+    <div style="display: flex; align-items: center;">
+      <div class="orders-pagination-controls">${pagesHtml}</div>
+      <div class="orders-per-page">
+        <select id="orders-per-page-select">
+          <option value="10" ${ordersPerPage === 10 ? 'selected' : ''}>10 / page</option>
+          <option value="25" ${ordersPerPage === 25 ? 'selected' : ''}>25 / page</option>
+          <option value="50" ${ordersPerPage === 50 ? 'selected' : ''}>50 / page</option>
+          <option value="100" ${ordersPerPage === 100 ? 'selected' : ''}>100 / page</option>
+        </select>
+      </div>
+    </div>
+  `;
+
+  // Bind page buttons
+  bar.querySelectorAll('.orders-page-btn[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const page = parseInt(btn.dataset.page);
+      if (page >= 1 && page <= totalPages) {
+        ordersPage = page;
+        renderAllOrders();
+      }
+    });
+  });
+
+  // Bind per-page select
+  const perPageSelect = document.getElementById('orders-per-page-select');
+  if (perPageSelect) {
+    perPageSelect.addEventListener('change', () => {
+      ordersPerPage = parseInt(perPageSelect.value);
+      ordersPage = 1;
+      renderAllOrders();
+    });
   }
 }
 
 // ========================================
-// VIEW ORDER DETAILS
+// SELECTION & BULK
 // ========================================
-window.viewOrderDetails = function(orderId) {
+function toggleOrderSelection(orderId, checked) {
+  if (checked) {
+    selectedOrderIds.add(orderId);
+  } else {
+    selectedOrderIds.delete(orderId);
+  }
+  const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+  if (row) row.classList.toggle('selected', checked);
+
+  const allCheckboxes = document.querySelectorAll('.order-row-checkbox');
+  const allChecked = allCheckboxes.length > 0 && [...allCheckboxes].every(cb => cb.checked);
+  document.getElementById('orders-select-all').checked = allChecked;
+
+  updateBulkBar();
+}
+
+function toggleAllOrders(checked) {
+  const checkboxes = document.querySelectorAll('.order-row-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = checked;
+    const orderId = cb.dataset.orderId;
+    if (checked) {
+      selectedOrderIds.add(orderId);
+    } else {
+      selectedOrderIds.delete(orderId);
+    }
+    const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+    if (row) row.classList.toggle('selected', checked);
+  });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('orders-bulk-bar');
+  const count = selectedOrderIds.size;
+  if (count > 0) {
+    bar.classList.remove('hidden');
+    document.getElementById('orders-bulk-count').textContent = `${count} selected`;
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+// ========================================
+// COPY TO CLIPBOARD
+// ========================================
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    const originalText = btn.textContent;
+    btn.textContent = '\u2713';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = originalText;
+    }, 1500);
+    showSuccess('Copied to clipboard!');
+  }).catch(() => {
+    showError('Failed to copy.');
+  });
+}
+
+// ========================================
+// CLEAR FILTERS
+// ========================================
+function clearOrderFilters() {
+  document.getElementById('order-status-filter').value = '';
+  document.getElementById('order-product-filter').value = '';
+  document.getElementById('order-date-from').value = '';
+  document.getElementById('order-date-to').value = '';
+  document.getElementById('order-search').value = '';
+  ordersPage = 1;
+  renderAllOrders();
+}
+
+// ========================================
+// EXPORT CSV
+// ========================================
+function ordersToCSV(orders) {
+  const headers = ['Creator Name', 'Instagram', 'Contact', 'Product', 'Amazon Order ID', 'UPI ID', 'Status', 'Refund Amount', 'Payment Amount', 'Created At', 'Updated At'];
+  const rows = orders.map(o => [
+    o.creator_name || '',
+    '@' + (o.instagram_id || ''),
+    o.contact_number || '',
+    o.product_title || '',
+    o.amazon_order_id || '',
+    o.upi_id || '',
+    o.status || '',
+    o.refund_amount || '',
+    o.payment_amount || '',
+    o.created_at ? new Date(o.created_at).toLocaleString() : '',
+    o.updated_at ? new Date(o.updated_at).toLocaleString() : ''
+  ]);
+
+  const csvContent = [headers, ...rows].map(row =>
+    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+  ).join('\n');
+
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `orders_export_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportOrdersCSV() {
+  const filtered = getFilteredOrders();
+  if (filtered.length === 0) {
+    showInfo('No orders to export.');
+    return;
+  }
+  ordersToCSV(filtered);
+  showSuccess(`Exported ${filtered.length} orders to CSV.`);
+}
+
+function exportSelectedOrdersCSV() {
+  if (selectedOrderIds.size === 0) {
+    showInfo('No orders selected.');
+    return;
+  }
+  const selected = allOrders.filter(o => selectedOrderIds.has(o.id));
+  ordersToCSV(selected);
+  showSuccess(`Exported ${selected.length} orders to CSV.`);
+}
+
+// ========================================
+// BULK ACTIONS
+// ========================================
+async function bulkMarkRefunded() {
+  const eligibleIds = [...selectedOrderIds].filter(id => {
+    const o = allOrders.find(order => order.id === id);
+    return o && o.status === 'screenshot_verified';
+  });
+
+  if (eligibleIds.length === 0) {
+    showInfo('No selected orders are eligible for refund (status must be "Screenshot Verified").');
+    return;
+  }
+
+  const bodyHTML = `
+    <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: var(--space-lg);">
+      Mark <strong>${eligibleIds.length}</strong> order(s) as refunded.
+    </p>
+    <div class="form-group" style="margin-bottom: var(--space-lg);">
+      <label class="form-label">Refund Amount (\u20B9) \u2014 applied to each order</label>
+      <input type="number" class="form-input" id="bulk-refund-amount" placeholder="Enter refund amount" required min="0" />
+    </div>
+    <button class="btn btn-success btn-lg w-full" id="confirm-bulk-refund-btn">Confirm Bulk Refund</button>
+  `;
+
+  openModal('Bulk Mark Refunded', bodyHTML);
+
+  document.getElementById('confirm-bulk-refund-btn').addEventListener('click', async () => {
+    const amount = parseFloat(document.getElementById('bulk-refund-amount').value);
+    if (!amount || amount <= 0) {
+      showError('Please enter a valid amount.');
+      return;
+    }
+
+    try {
+      for (const id of eligibleIds) {
+        await supabase.from('orders').update({
+          status: 'refunded',
+          refund_amount: amount,
+          updated_at: new Date().toISOString()
+        }).eq('id', id).eq('status', 'screenshot_verified');
+      }
+      closeModal();
+      showSuccess(`${eligibleIds.length} orders marked as refunded.`);
+      selectedOrderIds.clear();
+      await loadOrders();
+      updateDashboard();
+    } catch (error) {
+      showError('Bulk refund failed.');
+    }
+  });
+}
+
+async function bulkChangeStatus() {
+  const bodyHTML = `
+    <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: var(--space-lg);">
+      Change status of <strong>${selectedOrderIds.size}</strong> selected order(s).
+    </p>
+    <div class="form-group" style="margin-bottom: var(--space-lg);">
+      <label class="form-label">New Status</label>
+      <select class="form-select" id="bulk-new-status" style="width: 100%;">
+        <option value="interested">Interested</option>
+        <option value="screenshot_uploaded">Screenshot Uploaded</option>
+        <option value="screenshot_verified">Screenshot Verified</option>
+        <option value="refunded">Refunded</option>
+        <option value="review_submitted">Review Submitted</option>
+        <option value="review_verified">Review Verified</option>
+        <option value="reel_submitted">Reel Submitted</option>
+        <option value="completed">Completed</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-lg w-full" id="confirm-bulk-status-btn">Change Status</button>
+  `;
+
+  openModal('Bulk Change Status', bodyHTML);
+
+  document.getElementById('confirm-bulk-status-btn').addEventListener('click', async () => {
+    const newStatus = document.getElementById('bulk-new-status').value;
+    try {
+      for (const id of selectedOrderIds) {
+        await supabase.from('orders').update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        }).eq('id', id);
+      }
+      closeModal();
+      showSuccess(`${selectedOrderIds.size} orders updated to "${newStatus}".`);
+      selectedOrderIds.clear();
+      await loadOrders();
+      updateDashboard();
+    } catch (error) {
+      showError('Bulk status change failed.');
+    }
+  });
+}
+
+async function bulkDeleteOrders() {
+  const count = selectedOrderIds.size;
+  if (count === 0) return;
+
+  const confirmed = await confirmModal(
+    '\u26A0\uFE0F Delete Selected Orders',
+    `Are you sure you want to permanently delete <strong>${count}</strong> selected order(s)?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone.</span>`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    for (const id of selectedOrderIds) {
+      await supabase.from('orders').delete().eq('id', id);
+    }
+    allOrders = allOrders.filter(o => !selectedOrderIds.has(o.id));
+    showSuccess(`${count} orders deleted.`);
+    selectedOrderIds.clear();
+    updateDashboard();
+  } catch (error) {
+    showError('Bulk delete failed.');
+  }
+}
+
+// ========================================
+// ORDER DETAILS SIDE PANEL
+// ========================================
+function openOrderDetailsPanel(orderId) {
   const order = allOrders.find(o => o.id === orderId);
   if (!order) return;
 
+  renderOrderDetailsPanel(order);
+  document.getElementById('order-details-panel').classList.add('open');
+  document.getElementById('order-details-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOrderDetailsPanel() {
+  document.getElementById('order-details-panel').classList.remove('open');
+  document.getElementById('order-details-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Track edit mode state for side panel
+let odpEditMode = false;
+let odpCurrentOrderId = null;
+let odpNewScreenshotFile = null;
+let odpNewReviewFile = null;
+
+function renderOrderDetailsPanel(order) {
   const product = products.find(p => p.id === order.product_id);
-  const formatDate = (d) => d ? new Date(d).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  const formatDate = (d) => d ? new Date(d).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '\u2014';
+  const initials = getCreatorInitials(order.creator_name);
 
-  // Build activity log
-  const logEntries = [];
+  const body = document.getElementById('odp-body');
+  const footer = document.getElementById('odp-footer');
+  const header = document.querySelector('.odp-header');
+
+  odpCurrentOrderId = order.id;
+  odpEditMode = false;
+  odpNewScreenshotFile = null;
+  odpNewReviewFile = null;
+
+  // Update header with edit button
+  header.innerHTML = `
+    <h3>Order Details</h3>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="odp-edit-btn" id="odp-edit-toggle-btn" title="Edit Order">\u270F\uFE0F Edit</button>
+      <button class="odp-close-btn" id="odp-close-btn" title="Close">\u2715</button>
+    </div>
+  `;
+
+  // Re-bind close
+  document.getElementById('odp-close-btn').addEventListener('click', closeOrderDetailsPanel);
+
+  // Build timeline
+  const tlItems = [];
   if (order.created_at) {
-    logEntries.push({ time: order.created_at, label: 'Applied / Interested', icon: '\uD83D\uDCDD', color: '#6366F1' });
+    tlItems.push({ label: 'Order Submitted', time: formatDate(order.created_at), dotClass: 'green' });
   }
-  const currentIdx = ['interested','screenshot_uploaded','screenshot_verified','refunded','review_submitted','review_verified','reel_submitted','reel_rejected','completed','rejected'].indexOf(order.status);
-
-  if (order.screenshot_url) {
-    logEntries.push({ time: null, label: 'Purchase Screenshot Uploaded', icon: '\uD83D\uDCF8', color: '#F59E0B' });
+  if (order.screenshot_url || ['screenshot_verified', 'refunded', 'review_submitted', 'review_verified', 'reel_submitted', 'completed'].includes(order.status)) {
+    tlItems.push({ label: 'Screenshot Verified', time: order.updated_at && order.status !== 'screenshot_uploaded' ? formatDate(order.updated_at) : '', dotClass: 'green' });
   }
-  if (currentIdx >= 2) {
-    logEntries.push({ time: null, label: 'Screenshot Verified by Admin', icon: '\u2705', color: '#10B981' });
-  }
-  if (order.refund_amount) {
-    logEntries.push({ time: null, label: 'Refund of \u20B9' + order.refund_amount + ' Processed', icon: '\uD83D\uDCB8', color: '#0891B2' });
-  }
-  if (order.review_text) {
-    logEntries.push({ time: null, label: 'Review Submitted', icon: '\u2B50', color: '#8B5CF6' });
-  }
-  if (['review_verified','reel_submitted','reel_rejected','completed'].includes(order.status)) {
-    logEntries.push({ time: null, label: 'Review Verified by Admin', icon: '\u2705', color: '#10B981' });
-  }
-  if (order.reel_url || order.status === 'reel_rejected') {
-    logEntries.push({ time: null, label: 'Reel Submitted', icon: '\uD83C\uDFAC', color: '#EC4899' });
-  }
-  if (order.status === 'reel_rejected') {
-    logEntries.push({ time: order.updated_at, label: 'Reel Rejected \u2014 Needs Resubmission', icon: '\u26A0\uFE0F', color: '#EF4444' });
-  }
-  if (order.status === 'completed') {
-    logEntries.push({ time: order.updated_at, label: 'Completed \u2014 \u20B9' + (order.payment_amount || 0) + ' Paid', icon: '\uD83C\uDF89', color: '#059669' });
+  if (order.refund_amount || ['refunded', 'review_submitted', 'review_verified', 'reel_submitted', 'completed'].includes(order.status)) {
+    tlItems.push({ label: 'Refunded', time: order.updated_at ? formatDate(order.updated_at) : '', dotClass: 'blue' });
   }
   if (order.status === 'rejected') {
-    logEntries.push({ time: order.updated_at, label: 'Order Rejected', icon: '\u274C', color: '#EF4444' });
+    tlItems.push({ label: 'Order Rejected', time: formatDate(order.updated_at), dotClass: 'red' });
+  }
+  if (order.status === 'completed') {
+    tlItems.push({ label: 'Completed \u2014 \u20B9' + (order.payment_amount || 0) + ' Paid', time: formatDate(order.updated_at), dotClass: 'green' });
   }
 
-  const timelineHTML = logEntries.map((entry, i) => `
-    <div class="odm-timeline-item">
-      <div class="odm-timeline-dot" style="background: ${entry.color};"></div>
-      ${i < logEntries.length - 1 ? '<div class="odm-timeline-line"></div>' : ''}
-      <div class="odm-timeline-content">
-        <span class="odm-timeline-icon">${entry.icon}</span>
-        <span class="odm-timeline-label">${entry.label}</span>
-        ${entry.time ? `<span class="odm-timeline-time">${formatDate(entry.time)}</span>` : ''}
+  const timelineHTML = tlItems.map((item, i) => `
+    <div class="odp-tl-item">
+      <div class="odp-tl-dot ${item.dotClass}"></div>
+      ${i < tlItems.length - 1 ? '<div class="odp-tl-line"></div>' : ''}
+      <div class="odp-tl-content">
+        <div class="odp-tl-label">${item.label}</div>
+        ${item.time ? `<div class="odp-tl-time">${item.time}</div>` : ''}
       </div>
     </div>
   `).join('');
 
-  const screenshotCard = order.screenshot_url
-    ? `<div class="odm-media-card">
-        <div class="odm-media-label">\uD83D\uDCF8 Purchase Screenshot</div>
-        <div class="odm-media-thumb" onclick="window.previewImage('${order.screenshot_url}')">
-          <img src="${order.screenshot_url}" alt="Purchase screenshot" />
-          <div class="odm-media-overlay">Click to enlarge</div>
+  // Status options for dropdown
+  const statusOptions = [
+    'interested', 'screenshot_uploaded', 'screenshot_rejected', 'screenshot_verified',
+    'refunded', 'review_submitted', 'review_verified', 'review_rejected',
+    'reel_submitted', 'reel_rejected', 'completed', 'rejected'
+  ];
+  const statusOptionsHTML = statusOptions.map(s =>
+    `<option value="${s}" ${order.status === s ? 'selected' : ''}>${s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>`
+  ).join('');
+
+  body.innerHTML = `
+    <!-- Creator Header -->
+    <div class="odp-creator-header">
+      <div class="odp-creator-avatar">${initials}</div>
+      <div class="odp-creator-details">
+        <div class="odp-editable" data-field="creator_name">
+          <div class="odp-field-view">
+            <div class="odp-creator-name">${escHtml(order.creator_name)}</div>
+          </div>
+          <div class="odp-field-edit">
+            <input type="text" class="odp-edit-input" id="odp-edit-creator_name" value="${escHtml(order.creator_name || '')}" placeholder="Creator name" />
+          </div>
         </div>
-      </div>`
-    : `<div class="odm-media-card odm-media-empty">
-        <div class="odm-media-label">\uD83D\uDCF8 Purchase Screenshot</div>
-        <div class="odm-media-placeholder">Not uploaded yet</div>
-      </div>`;
-
-  const reviewCard = order.review_proof_url
-    ? `<div class="odm-media-card">
-        <div class="odm-media-label">\u2B50 Review Proof</div>
-        <div class="odm-media-thumb" onclick="window.previewImage('${order.review_proof_url}')">
-          <img src="${order.review_proof_url}" alt="Review proof" />
-          <div class="odm-media-overlay">Click to enlarge</div>
+        <div class="odp-editable" data-field="instagram_id">
+          <div class="odp-field-view">
+            <div class="odp-creator-handle">@${escHtml(order.instagram_id)}</div>
+          </div>
+          <div class="odp-field-edit">
+            <input type="text" class="odp-edit-input" id="odp-edit-instagram_id" value="${escHtml(order.instagram_id || '')}" placeholder="Instagram handle" />
+          </div>
         </div>
-      </div>`
-    : `<div class="odm-media-card odm-media-empty">
-        <div class="odm-media-label">\u2B50 Review Proof</div>
-        <div class="odm-media-placeholder">Not uploaded yet</div>
-      </div>`;
-
-  let reelCard;
-  if (order.reel_url) {
-    const isExternal = order.reel_url.startsWith('http') && !order.reel_url.includes('supabase');
-    reelCard = `<div class="odm-media-card">
-      <div class="odm-media-label">\uD83C\uDFAC Reel</div>
-      <a href="${order.reel_url}" target="_blank" class="odm-reel-link">${isExternal ? '\uD83D\uDD17 View Reel on Instagram/YouTube' : '\uD83D\uDCE5 Download Reel Video'}</a>
-    </div>`;
-  } else {
-    reelCard = `<div class="odm-media-card odm-media-empty">
-      <div class="odm-media-label">\uD83C\uDFAC Reel</div>
-      <div class="odm-media-placeholder">Not uploaded yet</div>
-    </div>`;
-  }
-
-  const bodyHTML = `
-    <div class="order-detail-modal">
-      <div class="odm-section">
-        <div class="odm-section-title">\uD83D\uDC64 Creator Info</div>
-        <div class="odm-grid">
-          <div class="odm-field"><span class="odm-label">Name</span><span class="odm-value">${order.creator_name}</span></div>
-          <div class="odm-field"><span class="odm-label">Instagram</span><span class="odm-value" style="color: var(--color-accent-teal);">@${order.instagram_id}</span></div>
-          <div class="odm-field"><span class="odm-label">Contact</span><span class="odm-value">${order.contact_number || '\u2014'}</span></div>
-          <div class="odm-field"><span class="odm-label">UPI ID</span><span class="odm-value" style="color: var(--color-accent-teal);">${order.upi_id || '\u2014'}</span></div>
+        <div class="odp-editable" data-field="status">
+          <div class="odp-field-view">
+            <div class="odp-status-badge">${getStatusBadge(order.status)}</div>
+          </div>
+          <div class="odp-field-edit">
+            <select class="odp-edit-select" id="odp-edit-status">${statusOptionsHTML}</select>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="odm-section">
-        <div class="odm-section-title">\uD83D\uDCE6 Order Info</div>
-        <div class="odm-grid">
-          <div class="odm-field"><span class="odm-label">Product</span><span class="odm-value">${order.product_title || 'Unknown'}</span></div>
-          <div class="odm-field"><span class="odm-label">Product Price</span><span class="odm-value">\u20B9${order.product_price || 0}</span></div>
-          <div class="odm-field"><span class="odm-label">Amazon Order ID</span><span class="odm-value" style="font-family: monospace;">${order.amazon_order_id || '\u2014'}</span></div>
-          <div class="odm-field"><span class="odm-label">Status</span><span class="odm-value">${getStatusBadge(order.status)}</span></div>
-          ${order.refund_amount ? `<div class="odm-field"><span class="odm-label">Refund</span><span class="odm-value" style="color: var(--color-accent-green); font-weight: 600;">\u20B9${order.refund_amount}</span></div>` : ''}
-          ${order.payment_amount ? `<div class="odm-field"><span class="odm-label">Payment</span><span class="odm-value" style="color: var(--color-accent-green); font-weight: 600;">\u20B9${order.payment_amount}</span></div>` : ''}
+    <!-- Contact Info -->
+    <div>
+      <div class="odp-editable" data-field="contact_number">
+        <div class="odp-field-view odp-info-row">
+          <span class="odp-info-icon">\uD83D\uDCDE</span>
+          <span class="odp-info-value">${escHtml(order.contact_number || '\u2014')}</span>
+          ${order.contact_number ? `<button class="btn-copy" data-copy="${escHtml(order.contact_number)}" title="Copy">\uD83D\uDCCB</button>` : ''}
+        </div>
+        <div class="odp-field-edit" style="padding: 4px 0;">
+          <span class="odp-info-icon">\uD83D\uDCDE</span>
+          <input type="text" class="odp-edit-input" id="odp-edit-contact_number" value="${escHtml(order.contact_number || '')}" placeholder="Contact number" />
         </div>
       </div>
-
-      <div class="odm-section">
-        <div class="odm-section-title">\uD83D\uDCCB Activity Log</div>
-        <div class="odm-timeline">${timelineHTML}</div>
+      <div class="odp-info-row" style="margin-top: 4px;">
+        <span class="odp-info-icon">\uD83D\uDCF8</span>
+        <span class="odp-info-value">@${escHtml(order.instagram_id)}</span>
+        ${order.instagram_id ? `<button class="btn-copy" data-copy="@${escHtml(order.instagram_id)}" title="Copy">\uD83D\uDCCB</button>` : ''}
       </div>
+    </div>
 
-      <div class="odm-section">
-        <div class="odm-section-title">\uD83D\uDDBC\uFE0F Media & Proofs</div>
-        <div class="odm-media-grid">${screenshotCard}${reviewCard}${reelCard}</div>
+    <!-- Product -->
+    <div class="odp-section">
+      <div class="odp-section-title">Product</div>
+      <div class="odp-product-card">
+        ${product && product.image_url
+          ? `<img class="odp-product-thumb" src="${escUrl(product.image_url)}" alt="" />`
+          : `<div class="odp-product-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1rem;">\uD83D\uDCE6</div>`}
+        <div>
+          <div class="odp-product-name">${escHtml(order.product_title || (product ? product.title : '') || 'Unknown')}</div>
+          <div class="odp-product-subtitle">${product && product.subtitle ? escHtml(product.subtitle) : ''}</div>
+        </div>
       </div>
+    </div>
 
-      ${order.review_text ? `
-      <div class="odm-section">
-        <div class="odm-section-title">\uD83D\uDCDD Review Text</div>
-        <div class="odm-review-text">\u201C${order.review_text}\u201D</div>
-      </div>` : ''}
+    <!-- Amazon Order ID -->
+    <div class="odp-section">
+      <div class="odp-section-title">Amazon Order ID</div>
+      <div class="odp-editable" data-field="amazon_order_id">
+        <div class="odp-field-view odp-info-row">
+          <span class="odp-info-value" style="font-family: monospace;">${escHtml(order.amazon_order_id || '\u2014')}</span>
+          ${order.amazon_order_id ? `<button class="btn-copy" data-copy="${escHtml(order.amazon_order_id)}" title="Copy">\uD83D\uDCCB</button>` : ''}
+        </div>
+        <div class="odp-field-edit">
+          <input type="text" class="odp-edit-input" id="odp-edit-amazon_order_id" value="${escHtml(order.amazon_order_id || '')}" placeholder="Amazon order ID" style="font-family: monospace;" />
+        </div>
+      </div>
+    </div>
 
-      ${order.admin_notes ? `
-      <div class="odm-section">
-        <div class="odm-section-title">\uD83D\uDCCC Admin Notes</div>
-        <div class="odm-admin-notes">${order.admin_notes}</div>
-      </div>` : ''}
+    <!-- UPI ID -->
+    <div class="odp-section">
+      <div class="odp-section-title">UPI ID</div>
+      <div class="odp-editable" data-field="upi_id">
+        <div class="odp-field-view odp-info-row">
+          <span class="odp-info-value">${escHtml(order.upi_id || '\u2014')}</span>
+          ${order.upi_id ? `<button class="btn-copy" data-copy="${escHtml(order.upi_id)}" title="Copy">\uD83D\uDCCB</button>` : ''}
+        </div>
+        <div class="odp-field-edit">
+          <input type="text" class="odp-edit-input" id="odp-edit-upi_id" value="${escHtml(order.upi_id || '')}" placeholder="UPI ID" />
+        </div>
+      </div>
+    </div>
 
-      <div class="odm-section odm-timestamps">
-        <div class="odm-section-title">\uD83D\uDD52 Timestamps</div>
-        <div class="odm-grid">
-          <div class="odm-field"><span class="odm-label">Created</span><span class="odm-value">${formatDate(order.created_at)}</span></div>
-          <div class="odm-field"><span class="odm-label">Last Updated</span><span class="odm-value">${formatDate(order.updated_at)}</span></div>
+    <!-- Purchase Screenshot -->
+    <div class="odp-section">
+      <div class="odp-section-title-row">
+        <div class="odp-section-title" style="margin-bottom: 0;">Purchase Screenshot</div>
+        <span class="odp-edit-hint" id="odp-screenshot-edit-hint" style="display: none;">Click image to change</span>
+      </div>
+      <div class="odp-image-edit-wrapper" id="odp-screenshot-wrapper">
+        ${order.screenshot_url
+          ? `<img src="${escUrl(order.screenshot_url)}" alt="Purchase screenshot" id="odp-screenshot-img" />
+             <div class="odp-image-edit-overlay" id="odp-screenshot-overlay">
+               <button class="odp-image-change-btn">\uD83D\uDCF7 Change Image</button>
+             </div>`
+          : `<div class="odp-image-upload-placeholder" id="odp-screenshot-placeholder" style="display: none;">
+               <div class="upload-icon">\uD83D\uDCF7</div>
+               <div class="upload-text">Click to upload screenshot</div>
+             </div>
+             <div style="padding: var(--space-md); background: #F8FAFC; border-radius: var(--radius-sm); color: var(--color-text-muted); font-size: 0.8rem; text-align: center; border: 1px dashed #E2E8F0;" id="odp-screenshot-empty">Not uploaded yet</div>`}
+        <input type="file" accept="image/*" id="odp-screenshot-file-input" style="display: none;" />
+        <img id="odp-screenshot-new-preview" class="odp-new-image-preview" style="display: none;" alt="New screenshot preview" />
+      </div>
+    </div>
+
+    <!-- Review Screenshot -->
+    <div class="odp-section">
+      <div class="odp-section-title-row">
+        <div class="odp-section-title" style="margin-bottom: 0;">Review Screenshot</div>
+        <span class="odp-edit-hint" id="odp-review-edit-hint" style="display: none;">Click image to change</span>
+      </div>
+      <div class="odp-image-edit-wrapper" id="odp-review-wrapper">
+        ${order.review_proof_url
+          ? `<img src="${escUrl(order.review_proof_url)}" alt="Review proof" id="odp-review-img" />
+             <div class="odp-image-edit-overlay" id="odp-review-overlay">
+               <button class="odp-image-change-btn">\uD83D\uDCF7 Change Image</button>
+             </div>`
+          : `<div class="odp-image-upload-placeholder" id="odp-review-placeholder" style="display: none;">
+               <div class="upload-icon">\uD83D\uDCF7</div>
+               <div class="upload-text">Click to upload review proof</div>
+             </div>
+             <div style="padding: var(--space-md); background: #F8FAFC; border-radius: var(--radius-sm); color: var(--color-text-muted); font-size: 0.8rem; text-align: center; border: 1px dashed #E2E8F0;" id="odp-review-empty">Not uploaded yet</div>`}
+        <input type="file" accept="image/*" id="odp-review-file-input" style="display: none;" />
+        <img id="odp-review-new-preview" class="odp-new-image-preview" style="display: none;" alt="New review preview" />
+      </div>
+    </div>
+
+    <!-- Refund Status -->
+    ${order.refund_amount ? `
+    <div class="odp-section">
+      <div class="odp-section-title">Refund Status</div>
+      <div>
+        <span class="odp-refund-badge refunded">Refunded</span>
+        <div class="odp-refund-date">Refunded on ${formatDate(order.updated_at)}</div>
+      </div>
+    </div>
+    ` : ''}
+
+    <!-- Order Timeline -->
+    <div class="odp-section">
+      <div class="odp-section-title">Order Timeline</div>
+      <div class="odp-timeline-list">${timelineHTML}</div>
+    </div>
+
+    <!-- Notes -->
+    <div class="odp-section">
+      <div class="odp-section-title">Notes</div>
+      <div class="odp-editable" data-field="admin_notes">
+        <div class="odp-field-view">
+          <div class="odp-notes">${order.admin_notes ? escHtml(order.admin_notes) : '<span style="color: var(--color-text-muted); font-size: 0.8rem;">\u2014</span>'}</div>
+        </div>
+        <div class="odp-field-edit">
+          <textarea class="odp-edit-textarea" id="odp-edit-admin_notes" placeholder="Add admin notes...">${escHtml(order.admin_notes || '')}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timestamps -->
+    <div class="odp-section">
+      <div class="odp-timestamps-grid">
+        <div>
+          <div class="odp-ts-label">Created At</div>
+          <div class="odp-ts-value">${formatDate(order.created_at)}</div>
+        </div>
+        <div>
+          <div class="odp-ts-label">Updated At</div>
+          <div class="odp-ts-value">${formatDate(order.updated_at)}</div>
         </div>
       </div>
     </div>
   `;
 
-  openModal('Order Details \u2014 ' + order.creator_name, bodyHTML);
+  // Footer â€” view mode
+  renderODPFooter('view', order);
+
+  // Bind panel events
+  bindODPViewEvents(order);
+
+  // Edit toggle
+  document.getElementById('odp-edit-toggle-btn').addEventListener('click', () => {
+    odpEditMode = !odpEditMode;
+    toggleODPEditMode(odpEditMode, order);
+  });
+}
+
+function renderODPFooter(mode, order) {
+  const footer = document.getElementById('odp-footer');
+  if (mode === 'edit') {
+    footer.innerHTML = `
+      <div class="odp-footer-edit">
+        <button class="odp-save-btn" id="odp-save-btn">\uD83D\uDCBE Save Changes</button>
+        <button class="odp-cancel-btn" id="odp-cancel-btn">Cancel</button>
+      </div>
+    `;
+    document.getElementById('odp-save-btn').addEventListener('click', () => adminSaveOrderEdits(order));
+    document.getElementById('odp-cancel-btn').addEventListener('click', () => {
+      odpEditMode = false;
+      toggleODPEditMode(false, order);
+    });
+  } else {
+    footer.innerHTML = `
+      <button class="btn-delete-order-panel" id="odp-delete-btn">\uD83D\uDDD1 Delete Order</button>
+    `;
+    document.getElementById('odp-delete-btn').addEventListener('click', () => {
+      closeOrderDetailsPanel();
+      window.deleteOrder(order.id, order.creator_name);
+    });
+  }
+}
+
+function bindODPViewEvents(order) {
+  const body = document.getElementById('odp-body');
+
+  // Copy buttons
+  body.querySelectorAll('.btn-copy[data-copy]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyToClipboard(btn.dataset.copy, btn);
+    });
+  });
+
+  // Image preview click (view mode only â€” on the actual img, not overlay)
+  const screenshotImg = document.getElementById('odp-screenshot-img');
+  if (screenshotImg && order.screenshot_url) {
+    screenshotImg.addEventListener('click', () => {
+      if (!odpEditMode) window.previewImage(order.screenshot_url);
+    });
+  }
+  const reviewImg = document.getElementById('odp-review-img');
+  if (reviewImg && order.review_proof_url) {
+    reviewImg.addEventListener('click', () => {
+      if (!odpEditMode) window.previewImage(order.review_proof_url);
+    });
+  }
+
+  // Screenshot file input
+  const screenshotFileInput = document.getElementById('odp-screenshot-file-input');
+  const screenshotOverlay = document.getElementById('odp-screenshot-overlay');
+  const screenshotPlaceholder = document.getElementById('odp-screenshot-placeholder');
+
+  if (screenshotOverlay) {
+    screenshotOverlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      screenshotFileInput.click();
+    });
+  }
+  if (screenshotPlaceholder) {
+    screenshotPlaceholder.addEventListener('click', () => screenshotFileInput.click());
+  }
+
+  screenshotFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    odpNewScreenshotFile = file;
+    const preview = document.getElementById('odp-screenshot-new-preview');
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      preview.src = ev.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    showInfo('New screenshot selected. Click "Save Changes" to upload.');
+  });
+
+  // Review file input
+  const reviewFileInput = document.getElementById('odp-review-file-input');
+  const reviewOverlay = document.getElementById('odp-review-overlay');
+  const reviewPlaceholder = document.getElementById('odp-review-placeholder');
+
+  if (reviewOverlay) {
+    reviewOverlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      reviewFileInput.click();
+    });
+  }
+  if (reviewPlaceholder) {
+    reviewPlaceholder.addEventListener('click', () => reviewFileInput.click());
+  }
+
+  reviewFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    odpNewReviewFile = file;
+    const preview = document.getElementById('odp-review-new-preview');
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      preview.src = ev.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    showInfo('New review proof selected. Click "Save Changes" to upload.');
+  });
+}
+
+function toggleODPEditMode(editing, order) {
+  const editBtn = document.getElementById('odp-edit-toggle-btn');
+
+  // Toggle editable fields
+  document.querySelectorAll('.odp-editable').forEach(el => {
+    el.classList.toggle('editing', editing);
+  });
+
+  // Toggle image edit overlays
+  document.querySelectorAll('.odp-image-edit-wrapper').forEach(el => {
+    el.classList.toggle('editing', editing);
+  });
+
+  // Toggle edit hints
+  const screenshotHint = document.getElementById('odp-screenshot-edit-hint');
+  const reviewHint = document.getElementById('odp-review-edit-hint');
+  if (screenshotHint) screenshotHint.style.display = editing ? 'inline' : 'none';
+  if (reviewHint) reviewHint.style.display = editing ? 'inline' : 'none';
+
+  // Show upload placeholder for empty images when editing
+  const screenshotPlaceholder = document.getElementById('odp-screenshot-placeholder');
+  const screenshotEmpty = document.getElementById('odp-screenshot-empty');
+  if (screenshotPlaceholder && screenshotEmpty) {
+    screenshotPlaceholder.style.display = editing ? 'block' : 'none';
+    screenshotEmpty.style.display = editing ? 'none' : 'block';
+  }
+  const reviewPlaceholder = document.getElementById('odp-review-placeholder');
+  const reviewEmpty = document.getElementById('odp-review-empty');
+  if (reviewPlaceholder && reviewEmpty) {
+    reviewPlaceholder.style.display = editing ? 'block' : 'none';
+    reviewEmpty.style.display = editing ? 'none' : 'block';
+  }
+
+  // Update edit button style
+  if (editBtn) {
+    editBtn.classList.toggle('active', editing);
+    editBtn.innerHTML = editing ? '\u2715 Cancel Edit' : '\u270F\uFE0F Edit';
+  }
+
+  // Update footer
+  renderODPFooter(editing ? 'edit' : 'view', order);
+
+  // Clear new file selections if cancelling
+  if (!editing) {
+    odpNewScreenshotFile = null;
+    odpNewReviewFile = null;
+    const screenshotPreview = document.getElementById('odp-screenshot-new-preview');
+    const reviewPreview = document.getElementById('odp-review-new-preview');
+    if (screenshotPreview) { screenshotPreview.style.display = 'none'; screenshotPreview.src = ''; }
+    if (reviewPreview) { reviewPreview.style.display = 'none'; reviewPreview.src = ''; }
+  }
+}
+
+async function adminSaveOrderEdits(order) {
+  const saveBtn = document.getElementById('odp-save-btn');
+  if (!saveBtn) return;
+
+  // Disable button and show spinner
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<span class="odp-saving-spinner"></span> Saving...';
+
+  try {
+    // Collect field values
+    const updates = {
+      creator_name: document.getElementById('odp-edit-creator_name')?.value.trim() || order.creator_name,
+      instagram_id: document.getElementById('odp-edit-instagram_id')?.value.trim() || order.instagram_id,
+      contact_number: document.getElementById('odp-edit-contact_number')?.value.trim() || '',
+      amazon_order_id: document.getElementById('odp-edit-amazon_order_id')?.value.trim() || '',
+      upi_id: document.getElementById('odp-edit-upi_id')?.value.trim() || '',
+      admin_notes: document.getElementById('odp-edit-admin_notes')?.value.trim() || '',
+      status: document.getElementById('odp-edit-status')?.value || order.status,
+      updated_at: new Date().toISOString()
+    };
+
+    // Handle screenshot upload
+    if (odpNewScreenshotFile) {
+      const path = `screenshots/${order.id}_${Date.now()}_${odpNewScreenshotFile.name}`;
+      const url = await uploadFile(odpNewScreenshotFile, path);
+      updates.screenshot_url = url;
+    }
+
+    // Handle review proof upload
+    if (odpNewReviewFile) {
+      const path = `reviews/${order.id}_${Date.now()}_${odpNewReviewFile.name}`;
+      const url = await uploadFile(odpNewReviewFile, path);
+      updates.review_proof_url = url;
+    }
+
+    // Update in Supabase
+    const { error } = await supabase.from('orders').update(updates).eq('id', order.id);
+    if (error) throw error;
+
+    // Update local state
+    const idx = allOrders.findIndex(o => o.id === order.id);
+    if (idx !== -1) {
+      Object.assign(allOrders[idx], updates);
+    }
+
+    // Reset edit state
+    odpEditMode = false;
+    odpNewScreenshotFile = null;
+    odpNewReviewFile = null;
+
+    showSuccess('Order updated successfully!');
+
+    // Re-render panel with updated data and table
+    renderOrderDetailsPanel(allOrders[idx] || { ...order, ...updates });
+    renderAllOrders();
+
+  } catch (err) {
+    console.error('Save order edits failed:', err);
+    showError('Failed to save changes: ' + (err.message || 'Unknown error'));
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '\uD83D\uDCBE Save Changes';
+  }
+}
+
+
+// Keep viewOrderDetails for backward compatibility (other sections still call it via modal)
+window.viewOrderDetails = function(orderId) {
+  openOrderDetailsPanel(orderId);
 };
 
 // ========================================
@@ -1753,17 +2683,17 @@ function renderCreators() {
           <span style="font-weight: 600; color: var(--color-text-primary);">${escHtml(creator.name)}</span>
         </div>
       </td>
-      <td style="font-size: 0.8rem; color: var(--color-text-secondary);">${escHtml(creator.email || '—')}</td>
-      <td style="color: var(--color-accent-teal);">@${escHtml(creator.instagram || '—')}</td>
-      <td style="font-size: 0.85rem;">${escHtml(creator.contact || '—')}</td>
+      <td style="font-size: 0.8rem; color: var(--color-text-secondary);">${escHtml(creator.email || 'Ã¢â‚¬â€')}</td>
+      <td style="color: var(--color-accent-teal);">@${escHtml(creator.instagram || 'Ã¢â‚¬â€')}</td>
+      <td style="font-size: 0.85rem;">${escHtml(creator.contact || 'Ã¢â‚¬â€')}</td>
       <td style="font-weight: 600;">${creator.orders.length}</td>
       <td style="color: var(--color-accent-green); font-weight: 600;">${creator.completedCount}</td>
       <td style="color: var(--color-accent-green); font-weight: 600;">\u20B9${creator.totalEarned.toLocaleString()}</td>
       <td style="font-size: 0.8rem;">${new Date(creator.firstOrder).toLocaleDateString()}</td>
       <td style="display: flex; gap: var(--space-xs); align-items: center;">
-        <button class="btn-eye" data-creator-id="${creator.id}" aria-label="View creator details" title="View Full History">👁️</button>
-        <button class="btn-message" data-chat-creator="${creator.id}" data-chat-name="${escHtml(creator.name)}" aria-label="Message Creator" title="Message Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; transition: transform 0.2s;">💬</button>
-        <button class="btn-delete-creator" data-delete-creator-id="${creator.id}" data-delete-creator-name="${escHtml(creator.name)}" aria-label="Delete creator" title="Delete Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">🗑️</button>
+        <button class="btn-eye" data-creator-id="${creator.id}" aria-label="View creator details" title="View Full History">Ã°Å¸â€˜ÂÃ¯Â¸Â</button>
+        <button class="btn-message" data-chat-creator="${creator.id}" data-chat-name="${escHtml(creator.name)}" aria-label="Message Creator" title="Message Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; transition: transform 0.2s;">Ã°Å¸â€™Â¬</button>
+        <button class="btn-delete-creator" data-delete-creator-id="${creator.id}" data-delete-creator-name="${escHtml(creator.name)}" aria-label="Delete creator" title="Delete Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">Ã°Å¸â€”â€˜Ã¯Â¸Â</button>
       </td>
     </tr>
   `).join('');
@@ -1791,7 +2721,7 @@ function renderCreators() {
 // ========================================
 window.deleteOrder = async function(orderId, creatorName) {
   const confirmed = await confirmModal(
-    '⚠️ Delete Order',
+    'Ã¢Å¡Â Ã¯Â¸Â Delete Order',
     `Are you sure you want to permanently delete this order from <strong>${creatorName}</strong>?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone. The order and all associated data will be removed from the database.</span>`
   );
 
@@ -1822,7 +2752,7 @@ window.deleteCreator = async function(creatorId, creatorName) {
   const creatorOrders = allOrders.filter(o => o.creator_id === creatorId);
 
   const confirmed = await confirmModal(
-    '⚠️ Delete Creator',
+    'Ã¢Å¡Â Ã¯Â¸Â Delete Creator',
     `Are you sure you want to permanently delete creator <strong>${creatorName}</strong> and all their <strong>${creatorOrders.length} order(s)</strong>?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone. All orders, messages, and profile data for this creator will be permanently removed.</span>`
   );
 
@@ -1875,7 +2805,7 @@ function exportCreatorsToExcel() {
   const btn = document.getElementById('download-creators-excel');
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '⏳ Generating...';
+  btn.innerHTML = 'Ã¢ÂÂ³ Generating...';
 
   try {
     // Build creators data from orders (same logic as renderCreators)
@@ -1925,7 +2855,7 @@ function exportCreatorsToExcel() {
       'Completed Orders': c.completedCount,
       'Pending Orders': c.orders.filter(o => !['completed', 'rejected'].includes(o.status)).length,
       'Rejected Orders': c.orders.filter(o => o.status === 'rejected').length,
-      'Total Earned (₹)': c.totalEarned,
+      'Total Earned (Ã¢â€šÂ¹)': c.totalEarned,
       'Joined Date': new Date(c.firstOrder).toLocaleDateString('en-IN'),
     }));
 
@@ -1961,8 +2891,8 @@ function exportCreatorsToExcel() {
           'UPI ID': order.upi_id || '-',
           'Status': (order.status || '').replace(/_/g, ' ').toUpperCase(),
           'Estimated Arrival': order.estimated_arrival_date ? new Date(order.estimated_arrival_date).toLocaleDateString('en-IN') : '-',
-          'Refund Amount (₹)': order.refund_amount || 0,
-          'Payment Amount (₹)': order.payment_amount || 0,
+          'Refund Amount (Ã¢â€šÂ¹)': order.refund_amount || 0,
+          'Payment Amount (Ã¢â€šÂ¹)': order.payment_amount || 0,
           'Screenshot URL': order.screenshot_url || '-',
           'Review Proof URL': order.review_proof_url || '-',
           'Reel URL': order.reel_url || '-',
@@ -2007,7 +2937,7 @@ function exportCreatorsToExcel() {
       { 'Metric': 'Completed Orders', 'Value': totalCompleted },
       { 'Metric': 'Pending Orders', 'Value': totalPending },
       { 'Metric': 'Rejected Orders', 'Value': allOrders.filter(o => o.status === 'rejected').length },
-      { 'Metric': 'Total Amount Paid (₹)', 'Value': totalEarned },
+      { 'Metric': 'Total Amount Paid (Ã¢â€šÂ¹)', 'Value': totalEarned },
       { 'Metric': 'Report Generated On', 'Value': new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) },
     ];
 
@@ -2041,9 +2971,9 @@ window.viewCreatorDetails = function(creatorId) {
   const creatorName = latestOrder.creator_name || profile?.display_name || 'Unknown';
   const creatorEmail = profile?.email || '';
   const creatorPassword = profile?.password_plain || '';
-  const instagram = latestOrder.instagram_id || '—';
-  const contact = latestOrder.contact_number || '—';
-  const upiId = creatorOrders.find(o => o.upi_id)?.upi_id || '—';
+  const instagram = latestOrder.instagram_id || 'Ã¢â‚¬â€';
+  const contact = latestOrder.contact_number || 'Ã¢â‚¬â€';
+  const upiId = creatorOrders.find(o => o.upi_id)?.upi_id || 'Ã¢â‚¬â€';
 
   // Stats
   const totalOrders = creatorOrders.length;
@@ -2106,7 +3036,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Screenshot rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Screenshot rejected for <strong>${product}</strong>` + (order.admin_notes ? ` Ã¢â‚¬â€ <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -2150,7 +3080,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Review rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Review rejected for <strong>${product}</strong>` + (order.admin_notes ? ` Ã¢â‚¬â€ <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -2183,7 +3113,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Reel rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Reel rejected for <strong>${product}</strong>` + (order.admin_notes ? ` Ã¢â‚¬â€ <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -2194,7 +3124,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\uD83C\uDF89',
-        label: `<strong>${product}</strong> completed — <strong style="color: var(--color-accent-green);">\u20B9${order.payment_amount || 0}</strong> paid`,
+        label: `<strong>${product}</strong> completed Ã¢â‚¬â€ <strong style="color: var(--color-accent-green);">\u20B9${order.payment_amount || 0}</strong> paid`,
         color: '#059669',
         orderId: order.id
       });
@@ -2205,7 +3135,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u274C',
-        label: `<strong>${product}</strong> rejected` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `<strong>${product}</strong> rejected` + (order.admin_notes ? ` Ã¢â‚¬â€ <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -2239,7 +3169,7 @@ window.viewCreatorDetails = function(creatorId) {
     <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); margin-bottom: var(--space-sm);">
       <div>
         <p style="font-weight: 600; font-size: 0.85rem; color: var(--color-text-primary); margin-bottom: 2px;">${escHtml(order.product_title || 'Unknown')}</p>
-        <p style="font-size: 0.75rem; color: var(--color-text-muted);">${new Date(order.created_at).toLocaleDateString()} ${order.amazon_order_id ? '· ' + escHtml(order.amazon_order_id) : ''}</p>
+        <p style="font-size: 0.75rem; color: var(--color-text-muted);">${new Date(order.created_at).toLocaleDateString()} ${order.amazon_order_id ? 'Ã‚Â· ' + escHtml(order.amazon_order_id) : ''}</p>
       </div>
       <div style="display: flex; align-items: center; gap: var(--space-sm);">
         ${getStatusBadge(order.status)}
@@ -2254,8 +3184,8 @@ window.viewCreatorDetails = function(creatorId) {
         <div class="odm-section-title">\uD83D\uDC64 Creator Info</div>
         <div class="odm-grid">
           <div class="odm-field"><span class="odm-label">Name</span><span class="odm-value">${escHtml(creatorName)}</span></div>
-          <div class="odm-field"><span class="odm-label">Email (Login)</span><span class="odm-value" style="color: var(--color-accent-violet); font-weight: 600;">${escHtml(creatorEmail || '—')}</span></div>
-          <div class="odm-field"><span class="odm-label">Password</span><span class="odm-value" style="font-family: monospace;"><span id="pwd-masked">${creatorPassword ? '••••••••' : '—'}</span><span id="pwd-plain" style="display:none;">${escHtml(creatorPassword)}</span>${creatorPassword ? ` <button onclick="document.getElementById('pwd-masked').style.display=document.getElementById('pwd-masked').style.display==='none'?'inline':'none';document.getElementById('pwd-plain').style.display=document.getElementById('pwd-plain').style.display==='none'?'inline':'none';this.textContent=this.textContent==='\uD83D\uDC41'?'\uD83D\uDE48':'\uD83D\uDC41'" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0 4px;" title="Toggle password">\uD83D\uDC41</button>` : ''}</span></div>
+          <div class="odm-field"><span class="odm-label">Email (Login)</span><span class="odm-value" style="color: var(--color-accent-violet); font-weight: 600;">${escHtml(creatorEmail || 'Ã¢â‚¬â€')}</span></div>
+          <div class="odm-field"><span class="odm-label">Password</span><span class="odm-value" style="font-family: monospace;"><span id="pwd-masked">${creatorPassword ? 'Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢' : 'Ã¢â‚¬â€'}</span><span id="pwd-plain" style="display:none;">${escHtml(creatorPassword)}</span>${creatorPassword ? ` <button onclick="document.getElementById('pwd-masked').style.display=document.getElementById('pwd-masked').style.display==='none'?'inline':'none';document.getElementById('pwd-plain').style.display=document.getElementById('pwd-plain').style.display==='none'?'inline':'none';this.textContent=this.textContent==='\uD83D\uDC41'?'\uD83D\uDE48':'\uD83D\uDC41'" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0 4px;" title="Toggle password">\uD83D\uDC41</button>` : ''}</span></div>
           <div class="odm-field"><span class="odm-label">Instagram</span><span class="odm-value" style="color: var(--color-accent-teal);">@${escHtml(instagram)}</span></div>
           <div class="odm-field"><span class="odm-label">Contact</span><span class="odm-value">${escHtml(contact)}</span></div>
           <div class="odm-field"><span class="odm-label">UPI ID</span><span class="odm-value" style="color: var(--color-accent-teal);">${escHtml(upiId)}</span></div>
@@ -2300,7 +3230,7 @@ window.viewCreatorDetails = function(creatorId) {
     </div>
   `;
 
-  openModal('\uD83D\uDC64 Creator — ' + creatorName, bodyHTML);
+  openModal('\uD83D\uDC64 Creator Ã¢â‚¬â€ ' + creatorName, bodyHTML);
 };
 
 // ========================================
@@ -2337,10 +3267,10 @@ function renderInbox() {
     
     let statusIcon = '';
     if (latest && latest.sender_id === currentUser.id) {
-      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? '✓✓' : '✓'}</span>`;
+      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? 'Ã¢Å“â€œÃ¢Å“â€œ' : 'Ã¢Å“â€œ'}</span>`;
     } else if (unreadCount > 0) {
        // Also bold the text if it's an unread incoming message
-       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">🟢</span>`;
+       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">Ã°Å¸Å¸Â¢</span>`;
     }
 
     return {
@@ -2360,7 +3290,7 @@ function renderInbox() {
       <div class="chat-contact ${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('${c.id}', '${escHtml(c.name)}')">
         <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
         <div class="contact-info">
-          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐' : ''}</div>
+          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? 'Ã¢Â­Â' : ''}</div>
           <div class="contact-preview" style="${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
             ${c.statusIcon}${escHtml(c.latestMsg)}
           </div>
@@ -2379,7 +3309,7 @@ function renderInbox() {
   } else {
     document.getElementById('admin-chat-main').innerHTML = `
       <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--color-text-muted);">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+        <div style="font-size: 3rem; margin-bottom: 1rem;">Ã°Å¸â€™Â¬</div>
         <p>Select a creator to start chatting</p>
       </div>
     `;
@@ -2461,10 +3391,10 @@ window.openChat = function(creatorId, creatorName, markActive = true) {
                 ` : ''}
                 <div class="bubble-meta">
                   <span class="bubble-time">${timeString}</span>
-                  ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
+                  ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? 'Ã¢Å“â€œÃ¢Å“â€œ' : 'Ã¢Å“â€œ'}</span>` : ''}
                 </div>
               </div>
-              <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">⋮</button>
+              <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">Ã¢â€¹Â®</button>
               <div class="msg-dropdown">
                 <button onclick="window.prepareReply('${escHtml(msg.content).replace(/'/g, "\\'")}')">Reply</button>
                 ${isFromAdmin ? `<button onclick="window.editMessage('${msg.id}', '${escHtml(msg.content).replace(/'/g, "\\'")}')">Edit</button>` : ''}
@@ -2477,11 +3407,11 @@ window.openChat = function(creatorId, creatorName, markActive = true) {
     </div>
     <div class="reply-preview-container" id="reply-preview-container">
       <div class="reply-preview-content" id="reply-preview-content"></div>
-      <button class="btn-cancel-reply" onclick="window.cancelReply()">×</button>
+      <button class="btn-cancel-reply" onclick="window.cancelReply()">Ãƒâ€”</button>
     </div>
     <div class="chat-attachment-preview-container" id="admin-chat-attachment-preview-container">
       <div class="chat-attachment-preview-content" id="admin-chat-attachment-preview-content"></div>
-      <button class="btn-cancel-reply" onclick="window.removeChatAttachment()">×</button>
+      <button class="btn-cancel-reply" onclick="window.removeChatAttachment()">Ãƒâ€”</button>
     </div>
     <div class="chat-input-area">
       <button class="chat-attachment-btn" title="Attach file" onclick="document.getElementById('admin-chat-file-input').click()">

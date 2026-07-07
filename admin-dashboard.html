@@ -248,60 +248,112 @@
 
       <!-- All Orders Section -->
       <section id="section-orders" class="hidden">
-        <div class="admin-page-header">
-          <div>
-            <h1>📋 All Orders</h1>
+        <!-- Header -->
+        <div class="orders-header">
+          <div class="orders-header-left">
+            <h1>All Orders</h1>
             <p>Complete order management</p>
           </div>
-        </div>
-
-        <div class="filter-bar" style="margin-bottom: var(--space-xl);">
-          <select class="form-select" id="order-status-filter">
-            <option value="">All Statuses</option>
-            <option value="interested">Interested</option>
-            <option value="screenshot_uploaded">Screenshot Uploaded</option>
-            <option value="screenshot_rejected">Screenshot Rejected</option>
-            <option value="screenshot_verified">Screenshot Verified</option>
-            <option value="refunded">Refunded</option>
-            <option value="review_submitted">Review Submitted</option>
-            <option value="review_verified">Review Verified</option>
-            <option value="review_rejected">Review Rejected</option>
-            <option value="reel_submitted">Reel Submitted</option>
-            <option value="reel_rejected">Reel Rejected</option>
-            <option value="completed">Completed</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          <input type="text" class="form-input" id="order-search" placeholder="Search by creator name..." />
-        </div>
-
-        <div class="admin-panel">
-          <div class="panel-body no-padding">
-            <div style="overflow-x: auto;">
-              <table class="data-table" id="all-orders-table">
-                <thead>
-                  <tr>
-                    <th>Creator</th>
-                    <th>Product</th>
-                    <th>Contact</th>
-                    <th>Instagram</th>
-                    <th>Amazon Order</th>
-                    <th>UPI ID</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="all-orders-body">
-                  <tr><td colspan="9" class="text-center" style="padding: 2rem;">Loading...</td></tr>
-                </tbody>
-              </table>
-            </div>
+          <div class="orders-header-right">
+            <button class="btn-export-csv" id="orders-export-csv-btn" title="Export CSV">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z"/><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/></svg>
+              Export CSV
+            </button>
           </div>
         </div>
-        <div id="load-more-container" class="hidden" style="text-align: center; padding: var(--space-lg);">
-          <button class="btn btn-secondary" id="load-more-btn">Load More Orders</button>
+
+        <!-- Stats Strip -->
+        <div class="orders-stats-strip" id="orders-stats-strip"></div>
+
+        <!-- Filter Bar -->
+        <div class="orders-filter-bar">
+          <div class="orders-filter-group">
+            <label>Status</label>
+            <select class="form-select" id="order-status-filter">
+              <option value="">All Statuses</option>
+              <option value="interested">Interested</option>
+              <option value="screenshot_uploaded">Screenshot Uploaded</option>
+              <option value="screenshot_rejected">Screenshot Rejected</option>
+              <option value="screenshot_verified">Screenshot Verified</option>
+              <option value="refunded">Refunded</option>
+              <option value="review_submitted">Review Submitted</option>
+              <option value="review_verified">Review Verified</option>
+              <option value="review_rejected">Review Rejected</option>
+              <option value="reel_submitted">Reel Submitted</option>
+              <option value="reel_rejected">Reel Rejected</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="orders-filter-group">
+            <label>Product</label>
+            <select class="form-select" id="order-product-filter">
+              <option value="">All Products</option>
+            </select>
+          </div>
+          <div class="orders-filter-group">
+            <label>Date Range</label>
+            <div class="orders-date-range">
+              <input type="date" class="form-input" id="order-date-from" />
+              <span>-</span>
+              <input type="date" class="form-input" id="order-date-to" />
+            </div>
+          </div>
+          <div class="orders-search-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-input" id="order-search" placeholder="Search by creator name, contact, order ID..." />
+          </div>
+          <button class="btn-clear-filters" id="orders-clear-filters-btn">🔄 Clear Filters</button>
+        </div>
+
+        <!-- Table -->
+        <div class="orders-table-wrapper">
+          <div style="overflow-x: auto;">
+            <table class="orders-table" id="all-orders-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px;"><input type="checkbox" id="orders-select-all" title="Select all" /></th>
+                  <th>Creator</th>
+                  <th>Product</th>
+                  <th>Contact</th>
+                  <th>Amazon Order ID</th>
+                  <th>UPI ID</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="all-orders-body">
+                <tr><td colspan="9" class="text-center" style="padding: 2rem;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- Pagination -->
+          <div class="orders-pagination-bar" id="orders-pagination-bar"></div>
+        </div>
+
+        <!-- Bulk Action Bar (hidden by default) -->
+        <div class="orders-bulk-bar hidden" id="orders-bulk-bar">
+          <span class="orders-bulk-count" id="orders-bulk-count">0 selected</span>
+          <div class="orders-bulk-actions">
+            <button class="btn-bulk refund" id="bulk-mark-refunded-btn">💸 Mark as Refunded</button>
+            <button class="btn-bulk status" id="bulk-change-status-btn">📋 Change Status</button>
+            <button class="btn-bulk export" id="bulk-export-btn">📥 Export Selected</button>
+            <button class="btn-bulk delete" id="bulk-delete-btn">🗑 Delete Selected</button>
+          </div>
         </div>
       </section>
+
+      <!-- Order Details Side Panel -->
+      <div class="order-details-panel-overlay" id="order-details-overlay"></div>
+      <div class="order-details-panel" id="order-details-panel">
+        <div class="odp-header">
+          <h3>Order Details</h3>
+          <button class="odp-close-btn" id="odp-close-btn" title="Close">✕</button>
+        </div>
+        <div class="odp-body" id="odp-body"></div>
+        <div class="odp-footer" id="odp-footer"></div>
+      </div>
 
       <!-- Creators Section -->
       <section id="section-creators" class="hidden">
