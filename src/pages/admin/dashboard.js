@@ -1,4 +1,4 @@
-﻿// Admin Dashboard — Supabase
+﻿// Admin Dashboard — Supabase
 import { requireAuth, signOut } from '../../auth.js';
 import { supabase } from '../../supabase.js';
 import { showSuccess, showError, showInfo } from '../../components/toast.js';
@@ -204,7 +204,7 @@ async function loadMessages() {
   }
 }
 
-// D3: Smart realtime — append new messages without refreshing the page
+// D3: Smart realtime — append new messages without refreshing the page
 let adminRealtimeChannel = null;
 
 function subscribeToRealtime() {
@@ -369,7 +369,7 @@ function renderInboxSidebarOnly() {
       <div class="chat-contact ${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('${c.id}', '${escHtml(c.name)}')">
         <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
         <div class="contact-info">
-          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐Â' : ''}</div>
+          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐' : ''}</div>
           <div class="contact-preview" style="${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
             ${c.statusIcon}${escHtml(c.latestMsg)}
           </div>
@@ -398,7 +398,7 @@ function refreshSection(section) {
 }
 
 // ========================================
-// DASHBOARD STATS (D4: stats + badges only — no full re-render)
+// DASHBOARD STATS (D4: stats + badges only — no full re-render)
 // ========================================
 function updateDashboardStats() {
   const activeProducts = products.filter(p => p.is_active).length;
@@ -430,7 +430,7 @@ function updateDashboardStats() {
   updateBadge('admin-inbox-badge', unreadMessages);
 }
 
-// D4: Backward-compat wrapper — called from loadAllData and nav
+// D4: Backward-compat wrapper — called from loadAllData and nav
 function updateDashboard() {
   updateDashboardStats();
   refreshActiveSection();
@@ -861,7 +861,7 @@ window.verifyScreenshot = async function(orderId) {
   }
 };
 
-// Screenshot-specific rejection — allows creator to resubmit
+// Screenshot-specific rejection — allows creator to resubmit
 window.rejectScreenshot = async function(orderId) {
   const bodyHTML = `
     <div class="form-group" style="margin-bottom: var(--space-lg);">
@@ -1058,7 +1058,7 @@ function renderReviewProofs() {
   if (pending.length === 0 && history.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">⭐Â</div>
+        <div class="empty-icon">⭐</div>
         <h3>No pending review proofs</h3>
         <p>All review proofs have been verified.</p>
       </div>
@@ -1165,7 +1165,7 @@ window.approveReview = async function(orderId) {
   }
 };
 
-// F10: Reject review — creator can resubmit
+// F10: Reject review — creator can resubmit
 window.rejectReview = async function(orderId) {
   const reason = prompt('Reason for review rejection (will be shown to creator):');
   if (reason === null) return; // cancelled
@@ -1309,7 +1309,7 @@ window.approveReel = async function(orderId) {
     <button class="btn btn-success btn-lg w-full" id="confirm-payment-btn">✓ Complete & Mark Paid</button>
   `;
 
-  openModal('Complete Order — Payment', bodyHTML);
+  openModal('Complete Order — Payment', bodyHTML);
 
   document.getElementById('confirm-payment-btn').addEventListener('click', async () => {
     const amount = parseFloat(document.getElementById('payment-amount').value);
@@ -1395,7 +1395,7 @@ window.rejectOrder = async function(orderId) {
   });
 };
 
-// Reel-specific rejection — allows creator to resubmit
+// Reel-specific rejection — allows creator to resubmit
 window.rejectReel = async function(orderId) {
   const bodyHTML = `
     <div class="form-group" style="margin-bottom: var(--space-lg);">
@@ -1435,7 +1435,7 @@ window.rejectReel = async function(orderId) {
 };
 
 // ========================================
-// ALL ORDERS TABLE — REDESIGNED
+// ALL ORDERS TABLE — REDESIGNED
 // ========================================
 
 function getFilteredOrders() {
@@ -2683,17 +2683,17 @@ function renderCreators() {
           <span style="font-weight: 600; color: var(--color-text-primary);">${escHtml(creator.name)}</span>
         </div>
       </td>
-      <td style="font-size: 0.8rem; color: var(--color-text-secondary);">${escHtml(creator.email || '—')}</td>
-      <td style="color: var(--color-accent-teal);">@${escHtml(creator.instagram || '—')}</td>
-      <td style="font-size: 0.85rem;">${escHtml(creator.contact || '—')}</td>
+      <td style="font-size: 0.8rem; color: var(--color-text-secondary);">${escHtml(creator.email || '—')}</td>
+      <td style="color: var(--color-accent-teal);">@${escHtml(creator.instagram || '—')}</td>
+      <td style="font-size: 0.85rem;">${escHtml(creator.contact || '—')}</td>
       <td style="font-weight: 600;">${creator.orders.length}</td>
       <td style="color: var(--color-accent-green); font-weight: 600;">${creator.completedCount}</td>
       <td style="color: var(--color-accent-green); font-weight: 600;">\u20B9${creator.totalEarned.toLocaleString()}</td>
       <td style="font-size: 0.8rem;">${new Date(creator.firstOrder).toLocaleDateString()}</td>
       <td style="display: flex; gap: var(--space-xs); align-items: center;">
-        <button class="btn-eye" data-creator-id="${creator.id}" aria-label="View creator details" title="View Full History">👁Â️Â</button>
+        <button class="btn-eye" data-creator-id="${creator.id}" aria-label="View creator details" title="View Full History">👁️</button>
         <button class="btn-message" data-chat-creator="${creator.id}" data-chat-name="${escHtml(creator.name)}" aria-label="Message Creator" title="Message Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; transition: transform 0.2s;">💬</button>
-        <button class="btn-delete-creator" data-delete-creator-id="${creator.id}" data-delete-creator-name="${escHtml(creator.name)}" aria-label="Delete creator" title="Delete Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">🗑️Â</button>
+        <button class="btn-delete-creator" data-delete-creator-id="${creator.id}" data-delete-creator-name="${escHtml(creator.name)}" aria-label="Delete creator" title="Delete Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">🗑️</button>
       </td>
     </tr>
   `).join('');
@@ -2721,7 +2721,7 @@ function renderCreators() {
 // ========================================
 window.deleteOrder = async function(orderId, creatorName) {
   const confirmed = await confirmModal(
-    '⚠️Â Delete Order',
+    '⚠️ Delete Order',
     `Are you sure you want to permanently delete this order from <strong>${creatorName}</strong>?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone. The order and all associated data will be removed from the database.</span>`
   );
 
@@ -2752,7 +2752,7 @@ window.deleteCreator = async function(creatorId, creatorName) {
   const creatorOrders = allOrders.filter(o => o.creator_id === creatorId);
 
   const confirmed = await confirmModal(
-    '⚠️Â Delete Creator',
+    '⚠️ Delete Creator',
     `Are you sure you want to permanently delete creator <strong>${creatorName}</strong> and all their <strong>${creatorOrders.length} order(s)</strong>?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone. All orders, messages, and profile data for this creator will be permanently removed.</span>`
   );
 
@@ -2971,9 +2971,9 @@ window.viewCreatorDetails = function(creatorId) {
   const creatorName = latestOrder.creator_name || profile?.display_name || 'Unknown';
   const creatorEmail = profile?.email || '';
   const creatorPassword = profile?.password_plain || '';
-  const instagram = latestOrder.instagram_id || '—';
-  const contact = latestOrder.contact_number || '—';
-  const upiId = creatorOrders.find(o => o.upi_id)?.upi_id || '—';
+  const instagram = latestOrder.instagram_id || '—';
+  const contact = latestOrder.contact_number || '—';
+  const upiId = creatorOrders.find(o => o.upi_id)?.upi_id || '—';
 
   // Stats
   const totalOrders = creatorOrders.length;
@@ -3036,7 +3036,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Screenshot rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Screenshot rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -3080,7 +3080,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Review rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Review rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -3113,7 +3113,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Reel rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Reel rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -3124,7 +3124,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\uD83C\uDF89',
-        label: `<strong>${product}</strong> completed — <strong style="color: var(--color-accent-green);">\u20B9${order.payment_amount || 0}</strong> paid`,
+        label: `<strong>${product}</strong> completed — <strong style="color: var(--color-accent-green);">\u20B9${order.payment_amount || 0}</strong> paid`,
         color: '#059669',
         orderId: order.id
       });
@@ -3135,7 +3135,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u274C',
-        label: `<strong>${product}</strong> rejected` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `<strong>${product}</strong> rejected` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -3184,8 +3184,8 @@ window.viewCreatorDetails = function(creatorId) {
         <div class="odm-section-title">\uD83D\uDC64 Creator Info</div>
         <div class="odm-grid">
           <div class="odm-field"><span class="odm-label">Name</span><span class="odm-value">${escHtml(creatorName)}</span></div>
-          <div class="odm-field"><span class="odm-label">Email (Login)</span><span class="odm-value" style="color: var(--color-accent-violet); font-weight: 600;">${escHtml(creatorEmail || '—')}</span></div>
-          <div class="odm-field"><span class="odm-label">Password</span><span class="odm-value" style="font-family: monospace;"><span id="pwd-masked">${creatorPassword ? '••••••••' : '—'}</span><span id="pwd-plain" style="display:none;">${escHtml(creatorPassword)}</span>${creatorPassword ? ` <button onclick="document.getElementById('pwd-masked').style.display=document.getElementById('pwd-masked').style.display==='none'?'inline':'none';document.getElementById('pwd-plain').style.display=document.getElementById('pwd-plain').style.display==='none'?'inline':'none';this.textContent=this.textContent==='\uD83D\uDC41'?'\uD83D\uDE48':'\uD83D\uDC41'" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0 4px;" title="Toggle password">\uD83D\uDC41</button>` : ''}</span></div>
+          <div class="odm-field"><span class="odm-label">Email (Login)</span><span class="odm-value" style="color: var(--color-accent-violet); font-weight: 600;">${escHtml(creatorEmail || '—')}</span></div>
+          <div class="odm-field"><span class="odm-label">Password</span><span class="odm-value" style="font-family: monospace;"><span id="pwd-masked">${creatorPassword ? '••••••••' : '—'}</span><span id="pwd-plain" style="display:none;">${escHtml(creatorPassword)}</span>${creatorPassword ? ` <button onclick="document.getElementById('pwd-masked').style.display=document.getElementById('pwd-masked').style.display==='none'?'inline':'none';document.getElementById('pwd-plain').style.display=document.getElementById('pwd-plain').style.display==='none'?'inline':'none';this.textContent=this.textContent==='\uD83D\uDC41'?'\uD83D\uDE48':'\uD83D\uDC41'" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0 4px;" title="Toggle password">\uD83D\uDC41</button>` : ''}</span></div>
           <div class="odm-field"><span class="odm-label">Instagram</span><span class="odm-value" style="color: var(--color-accent-teal);">@${escHtml(instagram)}</span></div>
           <div class="odm-field"><span class="odm-label">Contact</span><span class="odm-value">${escHtml(contact)}</span></div>
           <div class="odm-field"><span class="odm-label">UPI ID</span><span class="odm-value" style="color: var(--color-accent-teal);">${escHtml(upiId)}</span></div>
@@ -3230,7 +3230,7 @@ window.viewCreatorDetails = function(creatorId) {
     </div>
   `;
 
-  openModal('\uD83D\uDC64 Creator — ' + creatorName, bodyHTML);
+  openModal('\uD83D\uDC64 Creator — ' + creatorName, bodyHTML);
 };
 
 // ========================================
@@ -3290,7 +3290,7 @@ function renderInbox() {
       <div class="chat-contact ${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('${c.id}', '${escHtml(c.name)}')">
         <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
         <div class="contact-info">
-          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐Â' : ''}</div>
+          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐' : ''}</div>
           <div class="contact-preview" style="${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
             ${c.statusIcon}${escHtml(c.latestMsg)}
           </div>
