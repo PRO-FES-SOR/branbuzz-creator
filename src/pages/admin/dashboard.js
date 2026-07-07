@@ -1,4 +1,4 @@
-﻿// Admin Dashboard Ã¢â‚¬â€ Supabase
+﻿// Admin Dashboard — Supabase
 import { requireAuth, signOut } from '../../auth.js';
 import { supabase } from '../../supabase.js';
 import { showSuccess, showError, showInfo } from '../../components/toast.js';
@@ -204,7 +204,7 @@ async function loadMessages() {
   }
 }
 
-// D3: Smart realtime Ã¢â‚¬â€ append new messages without refreshing the page
+// D3: Smart realtime — append new messages without refreshing the page
 let adminRealtimeChannel = null;
 
 function subscribeToRealtime() {
@@ -316,10 +316,10 @@ function appendMessageBubbleAdmin(msg) {
         ${attachmentHtml}
         <div class="bubble-meta">
           <span class="bubble-time">${timeString}</span>
-          ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? 'Ã¢Å“â€œÃ¢Å“â€œ' : 'Ã¢Å“â€œ'}</span>` : ''}
+          ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
         </div>
       </div>
-      <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">Ã¢â€¹Â®</button>
+      <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">⋮</button>
       <div class="msg-dropdown">
         <button onclick="window.prepareReply('${escHtml(msg.content).replace(/'/g, "\\'")}')">\Reply</button>
         ${isFromAdmin ? `<button onclick="window.editMessage('${msg.id}', '${escHtml(msg.content).replace(/'/g, "\\'")}')">Edit</button>` : ''}
@@ -352,9 +352,9 @@ function renderInboxSidebarOnly() {
     
     let statusIcon = '';
     if (latest && latest.sender_id === currentUser.id) {
-      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? 'Ã¢Å“â€œÃ¢Å“â€œ' : 'Ã¢Å“â€œ'}</span>`;
+      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? '✓✓' : '✓'}</span>`;
     } else if (unreadCount > 0) {
-       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">Ã°Å¸Å¸Â¢</span>`;
+       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">🟢</span>`;
     }
 
     return {
@@ -369,7 +369,7 @@ function renderInboxSidebarOnly() {
       <div class="chat-contact ${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('${c.id}', '${escHtml(c.name)}')">
         <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
         <div class="contact-info">
-          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? 'Ã¢Â­Â' : ''}</div>
+          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐Â' : ''}</div>
           <div class="contact-preview" style="${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
             ${c.statusIcon}${escHtml(c.latestMsg)}
           </div>
@@ -398,7 +398,7 @@ function refreshSection(section) {
 }
 
 // ========================================
-// DASHBOARD STATS (D4: stats + badges only Ã¢â‚¬â€ no full re-render)
+// DASHBOARD STATS (D4: stats + badges only — no full re-render)
 // ========================================
 function updateDashboardStats() {
   const activeProducts = products.filter(p => p.is_active).length;
@@ -430,7 +430,7 @@ function updateDashboardStats() {
   updateBadge('admin-inbox-badge', unreadMessages);
 }
 
-// D4: Backward-compat wrapper Ã¢â‚¬â€ called from loadAllData and nav
+// D4: Backward-compat wrapper — called from loadAllData and nav
 function updateDashboard() {
   updateDashboardStats();
   refreshActiveSection();
@@ -560,7 +560,7 @@ function renderProductsTable() {
       <td>
         <div style="display:flex; align-items:center; gap: var(--space-sm);">
           <div style="width: 40px; height: 40px; border-radius: var(--radius-sm); overflow:hidden; background: var(--color-bg-secondary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            ${product.image_url ? `<img src="${product.image_url}" style="width:100%;height:100%;object-fit:cover;" />` : 'Ã°Å¸â€œÂ¦'}
+            ${product.image_url ? `<img src="${product.image_url}" style="width:100%;height:100%;object-fit:cover;" />` : '📦'}
           </div>
           <div>
             <div style="font-weight: 600; color: var(--color-text-primary); font-size: 0.85rem;">${product.title}</div>
@@ -568,9 +568,9 @@ function renderProductsTable() {
           </div>
         </div>
       </td>
-      <td style="font-weight: 600;">Ã¢â€šÂ¹${product.price || 0}</td>
-      <td style="color: var(--color-accent-green);">Ã¢â€šÂ¹${product.review_payment || 0}</td>
-      <td style="color: var(--color-accent-green);">Ã¢â€šÂ¹${product.reel_payment || 0}</td>
+      <td style="font-weight: 600;">₹${product.price || 0}</td>
+      <td style="color: var(--color-accent-green);">₹${product.review_payment || 0}</td>
+      <td style="color: var(--color-accent-green);">₹${product.reel_payment || 0}</td>
       <td>${product.is_active ? (product.campaign_closed ? '<span class="badge badge-warning" style="background: var(--color-accent-orange); color: white;">Campaign Closed</span>' : '<span class="badge badge-active">Active</span>') : '<span class="badge badge-rejected">Inactive</span>'}</td>
       <td>
         <div style="display:flex; gap: var(--space-xs);">
@@ -598,7 +598,7 @@ function openProductForm(product = null) {
           <textarea class="form-textarea" id="product-description">${product?.description || ''}</textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">Price (Ã¢â€šÂ¹)</label>
+          <label class="form-label">Price (₹)</label>
           <input type="number" class="form-input" id="product-price" value="${product?.price || ''}" required min="0" />
         </div>
         <div class="form-group">
@@ -626,11 +626,11 @@ function openProductForm(product = null) {
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Review Payment (Ã¢â€šÂ¹)</label>
+          <label class="form-label">Review Payment (₹)</label>
           <input type="number" class="form-input" id="product-review-payment" value="${product?.review_payment || 0}" min="0" />
         </div>
         <div class="form-group">
-          <label class="form-label">Reel Payment (Ã¢â€šÂ¹)</label>
+          <label class="form-label">Reel Payment (₹)</label>
           <input type="number" class="form-input" id="product-reel-payment" value="${product?.reel_payment || 0}" min="0" />
         </div>
       </div>
@@ -746,7 +746,7 @@ function renderScreenshots() {
   if (pending.length === 0 && history.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">Ã°Å¸â€œÂ¸</div>
+        <div class="empty-icon">📸</div>
         <h3>No pending screenshots</h3>
         <p>All purchase screenshots have been reviewed.</p>
       </div>
@@ -755,14 +755,14 @@ function renderScreenshots() {
   }
 
   if (pending.length > 0) {
-    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">Ã¢ÂÂ³ Pending Review (${pending.length})</h3>`;
+    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">⏳ Pending Review (${pending.length})</h3>`;
     html += pending.map((order, i) => renderScreenshotCard(order, i, true)).join('');
   } else {
-    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">Ã¢Å“â€¦ No pending screenshots to review</p></div>`;
+    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">✅ No pending screenshots to review</p></div>`;
   }
 
   if (history.length > 0) {
-    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">Ã°Å¸â€œâ€¹ History (${history.length})</h3>`;
+    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">📋 History (${history.length})</h3>`;
     html += history.map((order, i) => renderScreenshotCard(order, i, false)).join('');
   }
 
@@ -861,7 +861,7 @@ window.verifyScreenshot = async function(orderId) {
   }
 };
 
-// Screenshot-specific rejection Ã¢â‚¬â€ allows creator to resubmit
+// Screenshot-specific rejection — allows creator to resubmit
 window.rejectScreenshot = async function(orderId) {
   const bodyHTML = `
     <div class="form-group" style="margin-bottom: var(--space-lg);">
@@ -918,7 +918,7 @@ window.markRefunded = async function(orderId) {
       </div>
     ` : ''}
     <div class="form-group" style="margin-bottom: var(--space-lg);">
-      <label class="form-label">Refund Amount (Ã¢â€šÂ¹)</label>
+      <label class="form-label">Refund Amount (₹)</label>
       <input type="number" class="form-input" id="refund-amount" value="${order?.product_price || ''}" placeholder="Enter refund amount" required min="0" />
     </div>
     <button class="btn btn-success btn-lg w-full" id="confirm-refund-btn">Confirm Refund</button>
@@ -983,14 +983,14 @@ function renderRefunds() {
   }
 
   if (pending.length > 0) {
-    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">Ã¢ÂÂ³ Pending Refunds (${pending.length})</h3>`;
+    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">⏳ Pending Refunds (${pending.length})</h3>`;
     html += pending.map((order, i) => renderRefundCard(order, i, true)).join('');
   } else {
-    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">Ã¢Å“â€¦ No pending refunds to process</p></div>`;
+    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">✅ No pending refunds to process</p></div>`;
   }
 
   if (history.length > 0) {
-    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">Ã°Å¸â€œâ€¹ Refund History (${history.length})</h3>`;
+    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">📋 Refund History (${history.length})</h3>`;
     html += history.map((order, i) => renderRefundCard(order, i, false)).join('');
   }
 
@@ -1058,7 +1058,7 @@ function renderReviewProofs() {
   if (pending.length === 0 && history.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">Ã¢Â­Â</div>
+        <div class="empty-icon">⭐Â</div>
         <h3>No pending review proofs</h3>
         <p>All review proofs have been verified.</p>
       </div>
@@ -1067,14 +1067,14 @@ function renderReviewProofs() {
   }
 
   if (pending.length > 0) {
-    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">Ã¢ÂÂ³ Pending Review (${pending.length})</h3>`;
+    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">⏳ Pending Review (${pending.length})</h3>`;
     html += pending.map((order, i) => renderReviewCard(order, i, true)).join('');
   } else {
-    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">Ã¢Å“â€¦ No pending review proofs to verify</p></div>`;
+    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">✅ No pending review proofs to verify</p></div>`;
   }
 
   if (history.length > 0) {
-    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">Ã°Å¸â€œâ€¹ History (${history.length})</h3>`;
+    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">📋 History (${history.length})</h3>`;
     html += history.map((order, i) => renderReviewCard(order, i, false)).join('');
   }
 
@@ -1165,7 +1165,7 @@ window.approveReview = async function(orderId) {
   }
 };
 
-// F10: Reject review Ã¢â‚¬â€ creator can resubmit
+// F10: Reject review — creator can resubmit
 window.rejectReview = async function(orderId) {
   const reason = prompt('Reason for review rejection (will be shown to creator):');
   if (reason === null) return; // cancelled
@@ -1207,7 +1207,7 @@ function renderReels() {
   if (pending.length === 0 && history.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">Ã°Å¸Å½Â¬</div>
+        <div class="empty-icon">🎬</div>
         <h3>No pending reels</h3>
         <p>All submitted reels have been reviewed.</p>
       </div>
@@ -1216,14 +1216,14 @@ function renderReels() {
   }
 
   if (pending.length > 0) {
-    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">Ã¢ÂÂ³ Pending Review (${pending.length})</h3>`;
+    html += `<h3 style="margin-bottom: var(--space-md); color: var(--color-text-primary); font-size: 1rem;">⏳ Pending Review (${pending.length})</h3>`;
     html += pending.map((order, i) => renderReelCard(order, i, true)).join('');
   } else {
-    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">Ã¢Å“â€¦ No pending reels to review</p></div>`;
+    html += `<div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-xl); text-align: center;"><p style="color: var(--color-text-muted);">✅ No pending reels to review</p></div>`;
   }
 
   if (history.length > 0) {
-    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">Ã°Å¸â€œâ€¹ History (${history.length})</h3>`;
+    html += `<h3 style="margin-top: var(--space-xl); margin-bottom: var(--space-md); color: var(--color-text-muted); font-size: 1rem;">📋 History (${history.length})</h3>`;
     html += history.map((order, i) => renderReelCard(order, i, false)).join('');
   }
 
@@ -1258,8 +1258,8 @@ function renderReelCard(order, i, isPending) {
         <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);">Reel:</p>
         ${order.reel_url ? (
           isExternal
-            ? `<a href="${escUrl(order.reel_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top: var(--space-xs);">Ã°Å¸â€â€” View Reel on Instagram/YouTube</a>`
-            : `<a href="${escUrl(order.reel_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top: var(--space-xs);">Ã°Å¸â€œÂ¥ Download Reel Video</a>`
+            ? `<a href="${escUrl(order.reel_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top: var(--space-xs);">🔗 View Reel on Instagram/YouTube</a>`
+            : `<a href="${escUrl(order.reel_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top: var(--space-xs);">📥 Download Reel Video</a>`
         ) : '<p style="color: var(--color-text-muted);">No reel provided</p>'}
         ${order.admin_notes && !isPending ? `<p style="font-size: 0.8rem; color: var(--color-accent-orange); margin-top: var(--space-sm);"><strong>Admin Notes:</strong> ${escHtml(order.admin_notes)}</p>` : ''}
         ${order.payment_amount && !isPending ? `<p style="font-size: 0.85rem; color: var(--color-accent-green); margin-top: var(--space-sm);"><strong>Payment:</strong> \u20B9${order.payment_amount}</p>` : ''}
@@ -1295,21 +1295,21 @@ window.approveReel = async function(orderId) {
       </div>
     ` : ''}
     <div style="background: var(--color-bg-secondary); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg);">
-      <p style="font-size: 0.85rem; color: var(--color-text-muted);">Review Payment: <strong style="color: var(--color-accent-green);">Ã¢â€šÂ¹${reviewPay}</strong></p>
-      <p style="font-size: 0.85rem; color: var(--color-text-muted);">Reel Payment: <strong style="color: var(--color-accent-green);">Ã¢â€šÂ¹${reelPay}</strong></p>
+      <p style="font-size: 0.85rem; color: var(--color-text-muted);">Review Payment: <strong style="color: var(--color-accent-green);">₹${reviewPay}</strong></p>
+      <p style="font-size: 0.85rem; color: var(--color-text-muted);">Reel Payment: <strong style="color: var(--color-accent-green);">₹${reelPay}</strong></p>
     </div>
     <div class="form-group" style="margin-bottom: var(--space-lg);">
-      <label class="form-label">Total Payment Amount (Ã¢â€šÂ¹)</label>
+      <label class="form-label">Total Payment Amount (₹)</label>
       <input type="number" class="form-input" id="payment-amount" value="${totalPay}" required min="0" />
     </div>
     <div class="form-group" style="margin-bottom: var(--space-lg);">
       <label class="form-label">Admin Notes (optional)</label>
       <textarea class="form-textarea" id="admin-notes" placeholder="Any notes about this payment..."></textarea>
     </div>
-    <button class="btn btn-success btn-lg w-full" id="confirm-payment-btn">Ã¢Å“â€œ Complete & Mark Paid</button>
+    <button class="btn btn-success btn-lg w-full" id="confirm-payment-btn">✓ Complete & Mark Paid</button>
   `;
 
-  openModal('Complete Order Ã¢â‚¬â€ Payment', bodyHTML);
+  openModal('Complete Order — Payment', bodyHTML);
 
   document.getElementById('confirm-payment-btn').addEventListener('click', async () => {
     const amount = parseFloat(document.getElementById('payment-amount').value);
@@ -1341,14 +1341,14 @@ window.approveReel = async function(orderId) {
         return;
       }
       closeModal();
-      showSuccess(`Order completed! Ã¢â€šÂ¹${amount} payment recorded.`);
+      showSuccess(`Order completed! ₹${amount} payment recorded.`);
       await loadOrders();
       renderReels();
       updateDashboard();
     } catch (error) {
       showError('Failed to update order.');
       btn.disabled = false;
-      btn.textContent = 'Ã¢Å“â€œ Complete & Mark Paid';
+      btn.textContent = '✓ Complete & Mark Paid';
     }
   });
 };
@@ -1395,7 +1395,7 @@ window.rejectOrder = async function(orderId) {
   });
 };
 
-// Reel-specific rejection Ã¢â‚¬â€ allows creator to resubmit
+// Reel-specific rejection — allows creator to resubmit
 window.rejectReel = async function(orderId) {
   const bodyHTML = `
     <div class="form-group" style="margin-bottom: var(--space-lg);">
@@ -1435,7 +1435,7 @@ window.rejectReel = async function(orderId) {
 };
 
 // ========================================
-// ALL ORDERS TABLE Ã¢â‚¬â€ REDESIGNED
+// ALL ORDERS TABLE — REDESIGNED
 // ========================================
 
 function getFilteredOrders() {
@@ -2361,7 +2361,7 @@ function renderOrderDetailsPanel(order) {
     </div>
   `;
 
-  // Footer â€” view mode
+  // Footer — view mode
   renderODPFooter('view', order);
 
   // Bind panel events
@@ -2410,7 +2410,7 @@ function bindODPViewEvents(order) {
     });
   });
 
-  // Image preview click (view mode only â€” on the actual img, not overlay)
+  // Image preview click (view mode only — on the actual img, not overlay)
   const screenshotImg = document.getElementById('odp-screenshot-img');
   if (screenshotImg && order.screenshot_url) {
     screenshotImg.addEventListener('click', () => {
@@ -2683,17 +2683,17 @@ function renderCreators() {
           <span style="font-weight: 600; color: var(--color-text-primary);">${escHtml(creator.name)}</span>
         </div>
       </td>
-      <td style="font-size: 0.8rem; color: var(--color-text-secondary);">${escHtml(creator.email || 'Ã¢â‚¬â€')}</td>
-      <td style="color: var(--color-accent-teal);">@${escHtml(creator.instagram || 'Ã¢â‚¬â€')}</td>
-      <td style="font-size: 0.85rem;">${escHtml(creator.contact || 'Ã¢â‚¬â€')}</td>
+      <td style="font-size: 0.8rem; color: var(--color-text-secondary);">${escHtml(creator.email || '—')}</td>
+      <td style="color: var(--color-accent-teal);">@${escHtml(creator.instagram || '—')}</td>
+      <td style="font-size: 0.85rem;">${escHtml(creator.contact || '—')}</td>
       <td style="font-weight: 600;">${creator.orders.length}</td>
       <td style="color: var(--color-accent-green); font-weight: 600;">${creator.completedCount}</td>
       <td style="color: var(--color-accent-green); font-weight: 600;">\u20B9${creator.totalEarned.toLocaleString()}</td>
       <td style="font-size: 0.8rem;">${new Date(creator.firstOrder).toLocaleDateString()}</td>
       <td style="display: flex; gap: var(--space-xs); align-items: center;">
-        <button class="btn-eye" data-creator-id="${creator.id}" aria-label="View creator details" title="View Full History">Ã°Å¸â€˜ÂÃ¯Â¸Â</button>
-        <button class="btn-message" data-chat-creator="${creator.id}" data-chat-name="${escHtml(creator.name)}" aria-label="Message Creator" title="Message Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; transition: transform 0.2s;">Ã°Å¸â€™Â¬</button>
-        <button class="btn-delete-creator" data-delete-creator-id="${creator.id}" data-delete-creator-name="${escHtml(creator.name)}" aria-label="Delete creator" title="Delete Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">Ã°Å¸â€”â€˜Ã¯Â¸Â</button>
+        <button class="btn-eye" data-creator-id="${creator.id}" aria-label="View creator details" title="View Full History">👁Â️Â</button>
+        <button class="btn-message" data-chat-creator="${creator.id}" data-chat-name="${escHtml(creator.name)}" aria-label="Message Creator" title="Message Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; transition: transform 0.2s;">💬</button>
+        <button class="btn-delete-creator" data-delete-creator-id="${creator.id}" data-delete-creator-name="${escHtml(creator.name)}" aria-label="Delete creator" title="Delete Creator" style="background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px; transition: transform 0.2s; filter: grayscale(0.3);">🗑️Â</button>
       </td>
     </tr>
   `).join('');
@@ -2721,7 +2721,7 @@ function renderCreators() {
 // ========================================
 window.deleteOrder = async function(orderId, creatorName) {
   const confirmed = await confirmModal(
-    'Ã¢Å¡Â Ã¯Â¸Â Delete Order',
+    '⚠️Â Delete Order',
     `Are you sure you want to permanently delete this order from <strong>${creatorName}</strong>?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone. The order and all associated data will be removed from the database.</span>`
   );
 
@@ -2752,7 +2752,7 @@ window.deleteCreator = async function(creatorId, creatorName) {
   const creatorOrders = allOrders.filter(o => o.creator_id === creatorId);
 
   const confirmed = await confirmModal(
-    'Ã¢Å¡Â Ã¯Â¸Â Delete Creator',
+    '⚠️Â Delete Creator',
     `Are you sure you want to permanently delete creator <strong>${creatorName}</strong> and all their <strong>${creatorOrders.length} order(s)</strong>?<br><br><span style="color: var(--color-accent-red); font-size: 0.85rem;">This action cannot be undone. All orders, messages, and profile data for this creator will be permanently removed.</span>`
   );
 
@@ -2805,7 +2805,7 @@ function exportCreatorsToExcel() {
   const btn = document.getElementById('download-creators-excel');
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = 'Ã¢ÂÂ³ Generating...';
+  btn.innerHTML = '⏳ Generating...';
 
   try {
     // Build creators data from orders (same logic as renderCreators)
@@ -2855,7 +2855,7 @@ function exportCreatorsToExcel() {
       'Completed Orders': c.completedCount,
       'Pending Orders': c.orders.filter(o => !['completed', 'rejected'].includes(o.status)).length,
       'Rejected Orders': c.orders.filter(o => o.status === 'rejected').length,
-      'Total Earned (Ã¢â€šÂ¹)': c.totalEarned,
+      'Total Earned (₹)': c.totalEarned,
       'Joined Date': new Date(c.firstOrder).toLocaleDateString('en-IN'),
     }));
 
@@ -2891,8 +2891,8 @@ function exportCreatorsToExcel() {
           'UPI ID': order.upi_id || '-',
           'Status': (order.status || '').replace(/_/g, ' ').toUpperCase(),
           'Estimated Arrival': order.estimated_arrival_date ? new Date(order.estimated_arrival_date).toLocaleDateString('en-IN') : '-',
-          'Refund Amount (Ã¢â€šÂ¹)': order.refund_amount || 0,
-          'Payment Amount (Ã¢â€šÂ¹)': order.payment_amount || 0,
+          'Refund Amount (₹)': order.refund_amount || 0,
+          'Payment Amount (₹)': order.payment_amount || 0,
           'Screenshot URL': order.screenshot_url || '-',
           'Review Proof URL': order.review_proof_url || '-',
           'Reel URL': order.reel_url || '-',
@@ -2937,7 +2937,7 @@ function exportCreatorsToExcel() {
       { 'Metric': 'Completed Orders', 'Value': totalCompleted },
       { 'Metric': 'Pending Orders', 'Value': totalPending },
       { 'Metric': 'Rejected Orders', 'Value': allOrders.filter(o => o.status === 'rejected').length },
-      { 'Metric': 'Total Amount Paid (Ã¢â€šÂ¹)', 'Value': totalEarned },
+      { 'Metric': 'Total Amount Paid (₹)', 'Value': totalEarned },
       { 'Metric': 'Report Generated On', 'Value': new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) },
     ];
 
@@ -2971,9 +2971,9 @@ window.viewCreatorDetails = function(creatorId) {
   const creatorName = latestOrder.creator_name || profile?.display_name || 'Unknown';
   const creatorEmail = profile?.email || '';
   const creatorPassword = profile?.password_plain || '';
-  const instagram = latestOrder.instagram_id || 'Ã¢â‚¬â€';
-  const contact = latestOrder.contact_number || 'Ã¢â‚¬â€';
-  const upiId = creatorOrders.find(o => o.upi_id)?.upi_id || 'Ã¢â‚¬â€';
+  const instagram = latestOrder.instagram_id || '—';
+  const contact = latestOrder.contact_number || '—';
+  const upiId = creatorOrders.find(o => o.upi_id)?.upi_id || '—';
 
   // Stats
   const totalOrders = creatorOrders.length;
@@ -3036,7 +3036,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Screenshot rejected for <strong>${product}</strong>` + (order.admin_notes ? ` Ã¢â‚¬â€ <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Screenshot rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -3080,7 +3080,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Review rejected for <strong>${product}</strong>` + (order.admin_notes ? ` Ã¢â‚¬â€ <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Review rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -3113,7 +3113,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u26A0\uFE0F',
-        label: `Reel rejected for <strong>${product}</strong>` + (order.admin_notes ? ` Ã¢â‚¬â€ <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `Reel rejected for <strong>${product}</strong>` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -3124,7 +3124,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\uD83C\uDF89',
-        label: `<strong>${product}</strong> completed Ã¢â‚¬â€ <strong style="color: var(--color-accent-green);">\u20B9${order.payment_amount || 0}</strong> paid`,
+        label: `<strong>${product}</strong> completed — <strong style="color: var(--color-accent-green);">\u20B9${order.payment_amount || 0}</strong> paid`,
         color: '#059669',
         orderId: order.id
       });
@@ -3135,7 +3135,7 @@ window.viewCreatorDetails = function(creatorId) {
       activities.push({
         time: order.updated_at, sortTime: order.updated_at,
         icon: '\u274C',
-        label: `<strong>${product}</strong> rejected` + (order.admin_notes ? ` Ã¢â‚¬â€ <em>${escHtml(order.admin_notes)}</em>` : ''),
+        label: `<strong>${product}</strong> rejected` + (order.admin_notes ? ` — <em>${escHtml(order.admin_notes)}</em>` : ''),
         color: '#EF4444',
         orderId: order.id
       });
@@ -3169,7 +3169,7 @@ window.viewCreatorDetails = function(creatorId) {
     <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-md); background: var(--color-bg-secondary); border-radius: var(--radius-md); margin-bottom: var(--space-sm);">
       <div>
         <p style="font-weight: 600; font-size: 0.85rem; color: var(--color-text-primary); margin-bottom: 2px;">${escHtml(order.product_title || 'Unknown')}</p>
-        <p style="font-size: 0.75rem; color: var(--color-text-muted);">${new Date(order.created_at).toLocaleDateString()} ${order.amazon_order_id ? 'Ã‚Â· ' + escHtml(order.amazon_order_id) : ''}</p>
+        <p style="font-size: 0.75rem; color: var(--color-text-muted);">${new Date(order.created_at).toLocaleDateString()} ${order.amazon_order_id ? '· ' + escHtml(order.amazon_order_id) : ''}</p>
       </div>
       <div style="display: flex; align-items: center; gap: var(--space-sm);">
         ${getStatusBadge(order.status)}
@@ -3184,8 +3184,8 @@ window.viewCreatorDetails = function(creatorId) {
         <div class="odm-section-title">\uD83D\uDC64 Creator Info</div>
         <div class="odm-grid">
           <div class="odm-field"><span class="odm-label">Name</span><span class="odm-value">${escHtml(creatorName)}</span></div>
-          <div class="odm-field"><span class="odm-label">Email (Login)</span><span class="odm-value" style="color: var(--color-accent-violet); font-weight: 600;">${escHtml(creatorEmail || 'Ã¢â‚¬â€')}</span></div>
-          <div class="odm-field"><span class="odm-label">Password</span><span class="odm-value" style="font-family: monospace;"><span id="pwd-masked">${creatorPassword ? 'Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢' : 'Ã¢â‚¬â€'}</span><span id="pwd-plain" style="display:none;">${escHtml(creatorPassword)}</span>${creatorPassword ? ` <button onclick="document.getElementById('pwd-masked').style.display=document.getElementById('pwd-masked').style.display==='none'?'inline':'none';document.getElementById('pwd-plain').style.display=document.getElementById('pwd-plain').style.display==='none'?'inline':'none';this.textContent=this.textContent==='\uD83D\uDC41'?'\uD83D\uDE48':'\uD83D\uDC41'" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0 4px;" title="Toggle password">\uD83D\uDC41</button>` : ''}</span></div>
+          <div class="odm-field"><span class="odm-label">Email (Login)</span><span class="odm-value" style="color: var(--color-accent-violet); font-weight: 600;">${escHtml(creatorEmail || '—')}</span></div>
+          <div class="odm-field"><span class="odm-label">Password</span><span class="odm-value" style="font-family: monospace;"><span id="pwd-masked">${creatorPassword ? '••••••••' : '—'}</span><span id="pwd-plain" style="display:none;">${escHtml(creatorPassword)}</span>${creatorPassword ? ` <button onclick="document.getElementById('pwd-masked').style.display=document.getElementById('pwd-masked').style.display==='none'?'inline':'none';document.getElementById('pwd-plain').style.display=document.getElementById('pwd-plain').style.display==='none'?'inline':'none';this.textContent=this.textContent==='\uD83D\uDC41'?'\uD83D\uDE48':'\uD83D\uDC41'" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0 4px;" title="Toggle password">\uD83D\uDC41</button>` : ''}</span></div>
           <div class="odm-field"><span class="odm-label">Instagram</span><span class="odm-value" style="color: var(--color-accent-teal);">@${escHtml(instagram)}</span></div>
           <div class="odm-field"><span class="odm-label">Contact</span><span class="odm-value">${escHtml(contact)}</span></div>
           <div class="odm-field"><span class="odm-label">UPI ID</span><span class="odm-value" style="color: var(--color-accent-teal);">${escHtml(upiId)}</span></div>
@@ -3230,7 +3230,7 @@ window.viewCreatorDetails = function(creatorId) {
     </div>
   `;
 
-  openModal('\uD83D\uDC64 Creator Ã¢â‚¬â€ ' + creatorName, bodyHTML);
+  openModal('\uD83D\uDC64 Creator — ' + creatorName, bodyHTML);
 };
 
 // ========================================
@@ -3267,10 +3267,10 @@ function renderInbox() {
     
     let statusIcon = '';
     if (latest && latest.sender_id === currentUser.id) {
-      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? 'Ã¢Å“â€œÃ¢Å“â€œ' : 'Ã¢Å“â€œ'}</span>`;
+      statusIcon = `<span style="color: ${latest.is_read ? '#4facfe' : '#999'}; margin-right: 4px; font-size: 0.8rem;">${latest.is_read ? '✓✓' : '✓'}</span>`;
     } else if (unreadCount > 0) {
        // Also bold the text if it's an unread incoming message
-       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">Ã°Å¸Å¸Â¢</span>`;
+       statusIcon = `<span style="color: var(--color-accent-green); margin-right: 4px; font-size: 0.6rem;">🟢</span>`;
     }
 
     return {
@@ -3290,7 +3290,7 @@ function renderInbox() {
       <div class="chat-contact ${c.id === activeChatCreatorId ? 'active' : ''}" onclick="window.openChat('${c.id}', '${escHtml(c.name)}')">
         <div class="contact-avatar">${c.name.charAt(0).toUpperCase()}</div>
         <div class="contact-info">
-          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? 'Ã¢Â­Â' : ''}</div>
+          <div class="contact-name" style="${c.isUnread ? 'font-weight: 700;' : ''}">${escHtml(c.name)} ${isStarred ? '⭐Â' : ''}</div>
           <div class="contact-preview" style="${c.isUnread ? 'font-weight: 600; color: var(--color-text-primary);' : ''}">
             ${c.statusIcon}${escHtml(c.latestMsg)}
           </div>
@@ -3309,7 +3309,7 @@ function renderInbox() {
   } else {
     document.getElementById('admin-chat-main').innerHTML = `
       <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--color-text-muted);">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">Ã°Å¸â€™Â¬</div>
+        <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
         <p>Select a creator to start chatting</p>
       </div>
     `;
@@ -3391,10 +3391,10 @@ window.openChat = function(creatorId, creatorName, markActive = true) {
                 ` : ''}
                 <div class="bubble-meta">
                   <span class="bubble-time">${timeString}</span>
-                  ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? 'Ã¢Å“â€œÃ¢Å“â€œ' : 'Ã¢Å“â€œ'}</span>` : ''}
+                  ${isFromAdmin && !isBroadcast ? `<span class="bubble-status" style="color: ${msg.is_read ? '#4facfe' : '#999'}">${msg.is_read ? '✓✓' : '✓'}</span>` : ''}
                 </div>
               </div>
-              <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">Ã¢â€¹Â®</button>
+              <button class="msg-actions-trigger" onclick="this.nextElementSibling.classList.toggle('show')">⋮</button>
               <div class="msg-dropdown">
                 <button onclick="window.prepareReply('${escHtml(msg.content).replace(/'/g, "\\'")}')">Reply</button>
                 ${isFromAdmin ? `<button onclick="window.editMessage('${msg.id}', '${escHtml(msg.content).replace(/'/g, "\\'")}')">Edit</button>` : ''}
@@ -3407,11 +3407,11 @@ window.openChat = function(creatorId, creatorName, markActive = true) {
     </div>
     <div class="reply-preview-container" id="reply-preview-container">
       <div class="reply-preview-content" id="reply-preview-content"></div>
-      <button class="btn-cancel-reply" onclick="window.cancelReply()">Ãƒâ€”</button>
+      <button class="btn-cancel-reply" onclick="window.cancelReply()">×</button>
     </div>
     <div class="chat-attachment-preview-container" id="admin-chat-attachment-preview-container">
       <div class="chat-attachment-preview-content" id="admin-chat-attachment-preview-content"></div>
-      <button class="btn-cancel-reply" onclick="window.removeChatAttachment()">Ãƒâ€”</button>
+      <button class="btn-cancel-reply" onclick="window.removeChatAttachment()">×</button>
     </div>
     <div class="chat-input-area">
       <button class="chat-attachment-btn" title="Attach file" onclick="document.getElementById('admin-chat-file-input').click()">
