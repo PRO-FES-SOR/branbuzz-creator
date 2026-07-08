@@ -5,9 +5,11 @@ import { showSuccess, showError, showInfo } from '../../components/toast.js';
 import { openModal, closeModal, showImagePreview } from '../../components/modal.js';
 import { getStatusBadge, getStatusTimeline } from '../../components/statusBadge.js';
 import { createUploadArea, uploadFile } from '../../components/fileUpload.js';
+import { initPushNotifications, sendPushNotification } from '../../components/pushNotifications.js';
 import { escHtml, escUrl } from '../../utils.js';
 
 window.showImagePreview = showImagePreview;
+window.switchToSection = switchToSection;
 
 // C3: Single source of truth for sections
 const SECTIONS = {
@@ -44,6 +46,9 @@ async function init() {
     setupNavigation();
     setupOrderTabs();
     subscribeToRealtime();
+    
+    // Initialize push notifications
+    initPushNotifications();
   } catch (error) {
     console.error('Auth error:', error);
   }
@@ -126,7 +131,7 @@ function subscribeToRealtime() {
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'orders', filter: `creator_id=eq.${currentUser.id}` },
-      async () => {
+      async (payload) => {
         // Reload orders when changes happen
         await loadOrders();
         
@@ -134,6 +139,11 @@ function subscribeToRealtime() {
         const activeTab = document.querySelector('#order-tabs .section-tab.active');
         if (activeTab) {
           renderOrders(activeTab.dataset.filter);
+        }
+
+        if (payload.eventType === 'UPDATE' && payload.new) {
+          const status = payload.new.status.replace('_', ' ');
+          sendPushNotification('Order Updated', `Your order is now: ${status}`, { section: 'orders' });
         }
       }
     )
@@ -164,6 +174,14 @@ function subscribeToRealtime() {
           if (newMsg.receiver_id === currentUser.id && !newMsg.is_read) {
             markAsRead([newMsg.id]);
           }
+        } else if (newMsg.receiver_id === currentUser.id) {
+          // Send push notification if tab is hidden or inbox is not active
+          let preview = newMsg.content;
+          if (preview.includes('REPLY::[')) {
+             const match = preview.match(/REPLY::\[(.*?)\]::REPLY_END(.*)/s);
+             if (match) preview = match[2].trim();
+          }
+          sendPushNotification('New Message', preview, { section: 'inbox' });
         }
       }
     )

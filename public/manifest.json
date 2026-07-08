@@ -1,0 +1,21 @@
+{
+  "name": "BranBuzz Creator",
+  "short_name": "BranBuzz",
+  "description": "Connect, Create, Earn with BranBuzz.",
+  "start_url": "/creator-dashboard.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7C3AED",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

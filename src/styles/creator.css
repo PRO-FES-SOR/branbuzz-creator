@@ -661,3 +661,70 @@
     flex-direction: column;
   }
 }
+
+/* ---- Push Notification Banner ---- */
+.push-banner {
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-md) var(--space-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-top: var(--navbar-height); /* pushes below navbar */
+  transition: all 0.3s ease;
+  z-index: 990;
+  position: relative;
+}
+
+.push-banner.hidden {
+  display: none;
+}
+
+.push-banner-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+}
+
+.push-banner-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent-violet-light);
+  color: var(--color-accent-violet);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.push-banner-text h4 {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+}
+
+.push-banner-text p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.push-banner-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .push-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-md);
+  }
+  .push-banner-actions {
+    justify-content: flex-end;
+  }
+}

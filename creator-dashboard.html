@@ -7,6 +7,8 @@
   <meta name="description" content="Browse products, manage your orders, and earn through content creation." />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#7C3AED" />
   <link rel="stylesheet" href="/src/styles/main.css" />
   <link rel="stylesheet" href="/src/styles/creator.css" />
   <link rel="stylesheet" href="/src/styles/chat.css" />
@@ -32,6 +34,23 @@
       </div>
     </div>
   </nav>
+
+  <!-- Push Notification Banner -->
+  <div id="push-banner" class="push-banner hidden">
+    <div class="push-banner-content">
+      <div class="push-banner-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+      </div>
+      <div class="push-banner-text">
+        <h4 id="push-banner-title">Enable Notifications</h4>
+        <p id="push-banner-desc">Get instant updates when your order status changes or when you receive a new message.</p>
+      </div>
+    </div>
+    <div class="push-banner-actions">
+      <button class="btn btn-primary btn-sm" id="push-banner-enable">Enable</button>
+      <button class="btn btn-sm" id="push-banner-dismiss">Later</button>
+    </div>
+  </div>
 
   <!-- Floating Tab Bar -->
   <div class="floating-tabs-container">
