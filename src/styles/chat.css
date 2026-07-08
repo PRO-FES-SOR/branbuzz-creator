@@ -421,10 +421,15 @@
 /* Hide chat layout on mobile if necessary, or stack them */
 @media (max-width: 768px) {
   .chat-container {
+    position: fixed;
+    top: 52px;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    height: auto;
+    border-radius: 0;
     flex-direction: column;
-    height: calc(100vh - 52px - 56px - env(safe-area-inset-bottom, 0px));
-    min-height: 300px;
-    border-radius: var(--radius-md);
+    z-index: 10;
   }
   .chat-sidebar {
     display: none;

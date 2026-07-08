@@ -717,7 +717,7 @@
 
   /* ---- Main Content — Adjust for top+bottom bars ---- */
   .creator-main {
-    padding: var(--space-md) var(--space-md) calc(var(--space-xl) + 60px + env(safe-area-inset-bottom, 0px));
+    padding: calc(52px + var(--space-md)) var(--space-md) calc(var(--space-xl) + 60px + env(safe-area-inset-bottom, 0px));
     min-height: calc(100vh - 52px);
   }
 
@@ -1225,7 +1225,7 @@
    ============================================ */
 @media (max-width: 480px) {
   .creator-main {
-    padding: var(--space-sm) var(--space-sm) calc(var(--space-xl) + 60px + env(safe-area-inset-bottom, 0px));
+    padding: calc(52px + var(--space-sm)) var(--space-sm) calc(var(--space-xl) + 60px + env(safe-area-inset-bottom, 0px));
   }
 
   .product-image-container {
