@@ -40,6 +40,21 @@ async function init() {
     const avatarEl = document.getElementById('nav-avatar');
     if (avatarEl) avatarEl.textContent = (currentUser.displayName || 'C')[0].toUpperCase();
 
+    // Set welcome card avatar
+    const welcomeAvatar = document.getElementById('welcome-avatar');
+    if (welcomeAvatar) welcomeAvatar.textContent = (currentUser.displayName || 'C')[0].toUpperCase();
+
+    // Set dynamic greeting
+    const greetingEl = document.getElementById('welcome-greeting');
+    if (greetingEl) {
+      const hour = new Date().getHours();
+      let greeting = 'Good evening';
+      if (hour < 12) greeting = 'Good morning';
+      else if (hour < 17) greeting = 'Good afternoon';
+      const name = currentUser.displayName ? `, ${currentUser.displayName.split(' ')[0]}` : '';
+      greetingEl.textContent = `${greeting}${name}! 👋`;
+    }
+
     // Load data
     await Promise.all([loadProducts(), loadOrders(), loadMessages()]);
 
@@ -72,6 +87,16 @@ function setupNavigation() {
     supportBtn.addEventListener('click', () => {
       switchToSection('inbox');
     });
+  }
+
+  // Welcome Card Quick Actions
+  const quickOrdersBtn = document.getElementById('quick-orders-btn');
+  if (quickOrdersBtn) {
+    quickOrdersBtn.addEventListener('click', () => switchToSection('orders'));
+  }
+  const quickChatBtn = document.getElementById('quick-chat-btn');
+  if (quickChatBtn) {
+    quickChatBtn.addEventListener('click', () => switchToSection('inbox'));
   }
 
   // Logout
@@ -293,7 +318,7 @@ function renderProducts() {
   if (products.length === 0) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1;">
-        <div class="empty-icon">📦</div>
+        <div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" style="opacity: 0.3;"><path fill-rule="evenodd" d="M8.25 7.013V6a3.75 3.75 0 1 1 7.5 0v1.013c1.297.037 2.087.17 2.692.667c.83.68 1.06 1.834 1.523 4.143l.6 3c.664 3.32.996 4.98.096 6.079S18.067 22 14.68 22H9.32c-3.386 0-5.08 0-5.98-1.098s-.568-2.758.096-6.079l.6-3c.462-2.309.693-3.463 1.522-4.143c.606-.496 1.396-.63 2.693-.667M9.75 6a2.25 2.25 0 0 1 4.5 0v1h-4.5zM15 11a1 1 0 1 0 0-2a1 1 0 0 0 0 2m-5-1a1 1 0 1 1-2 0a1 1 0 0 1 2 0" clip-rule="evenodd"/></svg></div>
         <h3>No products available</h3>
         <p>Check back later for new product listings!</p>
       </div>
@@ -315,23 +340,19 @@ function renderProducts() {
         </div>
         ` : `
         <div class="product-badge-natural">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M17 8C8 10 5 16 5 22c0-2 1-7 6-10 1-1 3-2 6-2z"/><path d="M17 8c2-4 4-5 6-5-2 2-3 5-3 8-1 1-3 2-6 2 2-1 4-2 3-5z"/></svg>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M11.25 2.083a3.5 3.5 0 0 0-.713.243C6.553 4.188 4 9.395 4 13.856c0 4.24 3.183 7.724 7.25 8.109zm1.5 19.882c4.067-.385 7.25-3.868 7.25-8.108q0-.61-.063-1.234l-7.187 7.188zM18.26 7.18a13.4 13.4 0 0 0-1.34-2.04l-4.17 4.17v3.38zm-2.352-3.15a9.2 9.2 0 0 0-2.445-1.704a3.5 3.5 0 0 0-.713-.243v5.106zm3.028 4.594l-6.186 6.187v2.878l6.75-6.75l.132-.132a15 15 0 0 0-.696-2.183"/></svg>
           Natural
         </div>
         `}
         <button class="btn-heart">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 9.137C2 14 6.02 16.591 8.962 18.911C10 19.729 11 20.5 12 20.5s2-.77 3.038-1.59C17.981 16.592 22 14 22 9.138S16.5.825 12 5.501C7.5.825 2 4.274 2 9.137"/></svg>
         </button>
       </div>
       <div class="product-content">
         <h3 class="product-title">${escHtml(product.title)}</h3>
         <div class="product-category">Hair Care</div>
         <div class="product-rating">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="#F59E0B" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="#F59E0B" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="#F59E0B" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="#F59E0B" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="#F59E0B" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          ${'<svg viewBox="0 0 24 24" width="14" height="14" fill="#F59E0B"><path d="M9.153 5.408C10.42 3.136 11.053 2 12 2s1.58 1.136 2.847 3.408l.328.588c.36.646.54.969.82 1.182s.63.292 1.33.45l.636.144c2.46.557 3.689.835 3.982 1.776c.292.94-.546 1.921-2.223 3.882l-.434.507c-.476.557-.715.836-.822 1.18c-.107.345-.071.717.001 1.46l.066.677c.253 2.617.38 3.925-.386 4.506s-1.918.051-4.22-1.009l-.597-.274c-.654-.302-.981-.452-1.328-.452s-.674.15-1.328.452l-.596.274c-2.303 1.06-3.455 1.59-4.22 1.01c-.767-.582-.64-1.89-.387-4.507l.066-.676c.072-.744.108-1.116 0-1.46c-.106-.345-.345-.624-.821-1.18l-.434-.508c-1.677-1.96-2.515-2.941-2.223-3.882S3.58 8.328 6.04 7.772l.636-.144c.699-.158 1.048-.237 1.329-.45s.46-.536.82-1.182z"/></svg>'.repeat(5)}
           <span class="rating-text">4.6 (128)</span>
         </div>
         <p class="product-desc">${escHtml(product.description || 'No description available')}</p>
@@ -347,7 +368,7 @@ function renderProducts() {
             <span class="earn-label">Earn up to</span>
             <div class="earn-amount">
               ₹${(product.review_payment || 0) + (product.reel_payment || 0)}
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5l6 7l-6 7"/></svg>
             </div>
           </div>
         </div>
@@ -496,10 +517,33 @@ async function loadOrders() {
     }
 
     renderOrders();
+    updateWelcomeStats();
   } catch (error) {
     console.error('Error loading orders:', error);
     showError('Failed to load orders. Please refresh the page.');
   }
+}
+
+// ========================================
+// WELCOME CARD STATS
+// ========================================
+function updateWelcomeStats() {
+  const PENDING_STATUSES = ['interested', 'rejected', 'refunded', 'screenshot_verified', 'screenshot_rejected', 'review_verified', 'reel_rejected', 'review_rejected'];
+  const ACTIVE_STATUSES = ['interested', 'screenshot_uploaded', 'screenshot_verified', 'refunded', 'review_submitted', 'review_verified', 'reel_submitted', 'screenshot_rejected', 'review_rejected', 'reel_rejected'];
+
+  const activeCount = orders.filter(o => ACTIVE_STATUSES.includes(o.status)).length;
+  const pendingCount = orders.filter(o => PENDING_STATUSES.includes(o.status)).length;
+  const totalEarned = orders
+    .filter(o => o.status === 'completed')
+    .reduce((sum, o) => sum + (o.payment_amount || 0), 0);
+
+  const activeEl = document.getElementById('stat-active-orders');
+  const pendingEl = document.getElementById('stat-pending-actions');
+  const earnedEl = document.getElementById('stat-total-earned');
+
+  if (activeEl) activeEl.textContent = activeCount;
+  if (pendingEl) pendingEl.textContent = pendingCount;
+  if (earnedEl) earnedEl.textContent = `₹${totalEarned.toLocaleString('en-IN')}`;
 }
 
 function setupOrderTabs() {
@@ -529,7 +573,7 @@ function renderOrders(filter = 'all') {
   if (filtered.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📦</div>
+        <div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor" style="opacity: 0.3;"><path d="M9.5 2A1.5 1.5 0 0 0 8 3.5v1A1.5 1.5 0 0 0 9.5 6h5A1.5 1.5 0 0 0 16 4.5v-1A1.5 1.5 0 0 0 14.5 2z"/><path fill-rule="evenodd" d="M6.5 4.037c-1.258.07-2.052.27-2.621.84C3 5.756 3 7.17 3 9.998v6c0 2.829 0 4.243.879 5.122c.878.878 2.293.878 5.121.878h6c2.828 0 4.243 0 5.121-.878c.879-.88.879-2.293.879-5.122v-6c0-2.828 0-4.242-.879-5.121c-.569-.57-1.363-.77-2.621-.84V4.5a3 3 0 0 1-3 3h-5a3 3 0 0 1-3-3zM7 9.75a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5zM7 13.25a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5zM7 16.75a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5z" clip-rule="evenodd"/></svg></div>
         <h3>No orders found</h3>
         <p>${filter === 'all' ? 'Browse products and apply to start earning!' : 'No orders match this filter.'}</p>
       </div>
