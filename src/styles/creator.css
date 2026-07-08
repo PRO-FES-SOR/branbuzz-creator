@@ -762,8 +762,11 @@
   }
 
   .product-card-modern {
-    flex-direction: column;
-    border-radius: 20px;
+    flex-direction: row;
+    border-radius: 16px;
+    padding: 12px;
+    gap: 12px;
+    align-items: flex-start;
   }
 
   .product-card-modern:hover {
@@ -771,65 +774,104 @@
   }
 
   .product-image-container {
-    width: 100%;
-    max-width: 100%;
-    min-width: unset;
-    height: auto;
-    aspect-ratio: 4 / 3;
-  }
-
-  .product-badge-natural {
-    top: 10px;
-    left: 10px;
-    padding: 4px 10px;
-    font-size: 0.7rem;
-  }
-
-  .btn-heart {
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-  }
-
-  .product-content {
-    padding: 16px;
-  }
-
-  .product-title {
-    font-size: 1.05rem;
-    margin-bottom: 6px;
-  }
-
-  .product-category {
-    font-size: 0.7rem;
-    padding: 3px 8px;
-    margin-bottom: 8px;
-  }
-
-  .product-rating {
-    margin-bottom: 8px;
-  }
-
-  .product-desc {
-    font-size: 0.8rem;
-    margin-bottom: 14px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    width: 100px;
+    height: 100px;
+    max-width: 100px;
+    min-width: 100px;
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
     overflow: hidden;
   }
 
+  .product-badge-natural {
+    top: 6px;
+    left: 6px;
+    padding: 2px 6px;
+    font-size: 0.55rem;
+  }
+
+  .btn-heart {
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .btn-heart svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .product-content {
+    padding: 0;
+    flex: 1;
+    min-width: 0; /* allows text truncation */
+  }
+
+  .product-title {
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .product-category {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    margin-bottom: 6px;
+  }
+
+  .product-rating {
+    margin-bottom: 6px;
+  }
+  
+  .product-rating svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .rating-text {
+    font-size: 0.7rem;
+  }
+
+  .product-desc {
+    display: none; /* Hide description on mobile list view */
+  }
+
   .product-divider {
-    margin-bottom: 12px;
+    display: none; /* Hide divider on mobile */
+  }
+
+  .product-footer {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  .price-block {
+    gap: 0;
   }
 
   .price-current {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+  }
+  
+  .price-mrp {
+    font-size: 0.7rem;
+  }
+
+  .earn-block {
+    align-items: flex-end;
+  }
+  
+  .earn-label {
+    font-size: 0.65rem;
   }
 
   .earn-amount {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   /* ---- Orders Section — Mobile ---- */
@@ -1229,20 +1271,14 @@
   }
 
   .product-image-container {
-    aspect-ratio: 16 / 10;
-  }
-
-  .product-content {
-    padding: 12px;
+    width: 80px;
+    height: 80px;
+    max-width: 80px;
+    min-width: 80px;
   }
 
   .product-title {
-    font-size: 0.95rem;
-  }
-
-  .product-desc {
-    font-size: 0.75rem;
-    -webkit-line-clamp: 2;
+    font-size: 0.85rem;
   }
 
   .welcome-stats {
