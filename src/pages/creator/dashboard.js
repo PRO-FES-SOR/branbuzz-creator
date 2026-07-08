@@ -334,7 +334,7 @@ function renderProducts() {
           : `<span class="placeholder-icon">📦</span>`
         }
         ${product.campaign_closed ? `
-        <div class="product-badge-closed" style="position: absolute; top: 16px; left: 16px; background: rgba(239, 68, 68, 0.9); color: white; font-size: 0.75rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 2;">
+        <div class="product-badge-closed">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
           Campaign Closed
         </div>

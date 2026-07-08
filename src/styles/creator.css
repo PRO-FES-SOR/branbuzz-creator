@@ -311,6 +311,24 @@
   align-items: center;
   gap: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  z-index: 2;
+}
+
+.product-badge-closed {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  z-index: 2;
 }
 
 .btn-heart {
@@ -783,7 +801,8 @@
     overflow: hidden;
   }
 
-  .product-badge-natural {
+  .product-badge-natural,
+  .product-badge-closed {
     top: 6px;
     left: 6px;
     padding: 2px 6px;
